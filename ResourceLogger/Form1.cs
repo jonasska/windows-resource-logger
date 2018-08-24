@@ -17,18 +17,16 @@ namespace ResourceLogger
 	public partial class Form1 : Form
 	{
 		Logger logger;
-		private int nLivePoints;
+		
 		private TimeSpan historyInteval;
-		private int interval;
+		
 
 		public Form1()
 		{
 			InitializeComponent();
 			logger = new Logger();
 
-			nLivePoints = 1800;
-			interval = 1;
-			timer1.Interval = interval * 1000;
+			timer1.Interval = Config.SamplingInterval * 1000;
 
 			historyInteval = TimeSpan.FromMinutes(10);
 			historyDatapointsLabel.Text = historyInteval.ToString();
@@ -62,7 +60,7 @@ namespace ResourceLogger
 
 			foreach (var ser in chart1.Series)
 			{
-				while (ser.Points.Count > nLivePoints)
+				while (ser.Points.Count > Config.LivePoints)
 				{
 					ser.Points.RemoveAt(0);
 				}
@@ -198,9 +196,9 @@ namespace ResourceLogger
 
 		private int historyDatapopintThinning(TimeSpan width)
 		{
-			int datapointLines = 2000;
+			
 			int seconds = (int)width.TotalSeconds;
-			return (seconds / datapointLines) + 1;
+			return (seconds / Config.HistoryDatapointLines) + 1;
 		}
 	}
 }

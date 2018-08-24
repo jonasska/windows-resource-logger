@@ -82,7 +82,7 @@ namespace ResourceLogger
 					{
 						var parts = path.Split(new char[] { '.', '/' });
 						DateTime filePosition = new DateTime(long.Parse(parts[parts.Length - 2]) * 10000);
-						if (filePosition + TimeSpan.FromSeconds(Config.nDatapointsInOneFile) < position || filePosition > position + width)
+						if (filePosition + TimeSpan.FromSeconds(Config.DatapointsInOneFile) < position || filePosition > position + width)
 						{
 							continue;
 						}
@@ -178,7 +178,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.nDatapointsInOneFile)
+			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -394,7 +394,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.nDatapointsInOneFile)
+			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -692,7 +692,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.nDatapointsInOneFile)
+			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -1003,7 +1003,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.nDatapointsInOneFile)
+			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;

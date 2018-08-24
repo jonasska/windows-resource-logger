@@ -9,7 +9,11 @@ namespace ResourceLogger
 	class Config
 	{
 		public static string systemDirectory = "../../logs/system/";
-		public static int nDatapointsInOneFile = 100000;
+		public static int DatapointsInOneFile = 100000;
+
+		public static int HistoryDatapointLines = 2000;
+		public static int LivePoints = 1800;
+		public static int SamplingInterval = 1; //number of seconds
 	}
 
 	public struct AxisRange

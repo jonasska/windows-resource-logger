@@ -4,3 +4,5 @@
 
 /ResourceLogger/bin
 /ResourceLogger/obj
+/ResourceLogger/logs/system
+/.vs
