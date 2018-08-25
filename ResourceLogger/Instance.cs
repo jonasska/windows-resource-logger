@@ -78,15 +78,26 @@ namespace ResourceLogger
 				{
 					datapointLines.Clear();
 					var paths = System.IO.Directory.GetFiles(filepath2);
-					foreach (var path in paths)
+
+
+					for (int i = 0; i <paths.Length; i++)
 					{
-						var parts = path.Split(new char[] { '.', '/' });
-						DateTime filePosition = new DateTime(long.Parse(parts[parts.Length - 2]) * 10000);
-						if (filePosition + TimeSpan.FromSeconds(Config.DatapointsInOneFile) < position || filePosition > position + width)
+						var thisFileParts = paths[i].Split(new char[] { '.', '/' });
+						DateTime thisFilePosition = new DateTime(long.Parse(thisFileParts[thisFileParts.Length - 2]) * 10000);
+						if (thisFilePosition > position + width)
 						{
 							continue;
 						}
-						System.IO.StreamReader reader = new System.IO.StreamReader(path);
+						if (i+1 < paths.Length) //next exist
+						{
+							var nextFileParts = paths[i+1].Split(new char[] { '.', '/' });
+							DateTime nextFilePosition = new DateTime(long.Parse(nextFileParts[nextFileParts.Length - 2]) * 10000);
+							if (nextFilePosition < position)
+							{
+								continue;
+							}
+						}
+						System.IO.StreamReader reader = new System.IO.StreamReader(paths[i]);
 						while (!reader.EndOfStream)
 						{
 							string line = reader.ReadLine();
