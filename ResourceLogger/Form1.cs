@@ -162,20 +162,12 @@ namespace ResourceLogger
 		private void historyDatapointsUpLabel_Click(object sender, EventArgs e)
 		{
 			historyInteval = historyInteval.Add(TimeSpan.FromSeconds(historyInteval.TotalSeconds / 10));
-			//if (nHistoryPoints < 950)
-			//	nHistoryPoints += 50;
-			//else
-			//	nHistoryPoints = 1000;
 			applyHistoryDatapoints();
 		}
 
 		private void historyDatapointsDownLabel_Click(object sender, EventArgs e)
 		{
 			historyInteval = historyInteval.Subtract(TimeSpan.FromSeconds(historyInteval.TotalSeconds / 11));
-			//if (nHistoryPoints > 100)
-			//	nHistoryPoints -= 50;
-			//else
-			//	nHistoryPoints = 50;
 			applyHistoryDatapoints();
 		}
 

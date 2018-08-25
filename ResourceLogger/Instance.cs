@@ -32,8 +32,6 @@ namespace ResourceLogger
 
 		public abstract AxisRange GetHistoryYAxisRange();
 
-		//public abstract string drawHistoryGraph(int position, int width);
-
 		public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
 
 		protected abstract void parseDatapoints(TimeSpan width, TimeSpan pointWidth);
@@ -214,67 +212,6 @@ namespace ResourceLogger
 			return GetLiveYAxisRange();
 		}
 
-		//public override string drawHistoryGraph(int position, int width)
-		//{
-		//	historySeries[0].Points.Clear();
-
-		//	string historySummary = "";
-		//	int count = 0;
-		//	double total = 0;
-
-		//	DateTime prevTime = DateTime.Now;
-		//	for (int i = position; i < position + width - 1 && i < datapointLines.Count - 1; i++)
-		//	{
-		//		var point = datapointLines[i];
-		//		var data = point.Split(',');
-		//		DateTime time = new DateTime(long.Parse(data[0]) * 10000);
-		//		int mem = int.Parse(data[1]);
-		//		TimeSpan span = new TimeSpan(long.Parse(data[2]) * 10000);
-
-		//		if (historySeries[0].Points.Count > 0)  // for marking 0 if measured large gap
-		//		{
-		//			TimeSpan spanBetweenPoints = time - prevTime;
-		//			if (spanBetweenPoints > span + span)
-		//			{
-		//				historySeries[0].Points.AddXY(prevTime + span, 0.0);
-		//				historySeries[0].Points.AddXY(time - span, 0.0);
-		//			}
-		//		}
-
-		//		prevTime = time;
-
-		//		historySeries[0].Points.AddXY(time, mem);
-		//		total += mem;
-		//		count++;
-		//	}
-
-		//	if (position < datapointLines.Count - 1) // position exists
-		//	{
-		//		var point = datapointLines[position];
-		//		var data = point.Split(',');
-		//		DateTime firstTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		DateTime lastTime;
-		//		if (position + width - 1 > datapointLines.Count - 1)
-		//		{
-		//			point = datapointLines[datapointLines.Count - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-		//		else
-		//		{
-		//			point = datapointLines[position + width - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-
-		//		TimeSpan selectionSpan = lastTime - firstTime;
-		//		historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
-		//						 "Average Memory consumption: " + (total / count).ToString("#.000") + "MB";// + Environment.NewLine;
-		//	}
-
-		//	return historySummary;
-		//}
-
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
@@ -287,7 +224,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//MemoryDatapoint datapoint = new MemoryDatapoint(datapointLines[0]);
 				MemoryDatapoint datapoint = (MemoryDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -303,9 +239,6 @@ namespace ResourceLogger
 			}
 
 			DateTime prevTime = DateTime.Now;
-			//foreach (var point in datapointLines)
-			//{
-			//	//MemoryDatapoint datapoint = new MemoryDatapoint(point);
 			foreach (var point in datapoints)
 			{
 				MemoryDatapoint datapoint = (MemoryDatapoint)point;
@@ -326,7 +259,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//MemoryDatapoint datapoint = new MemoryDatapoint(datapointLines[datapointLines.Count - 1]);
 				MemoryDatapoint datapoint = (MemoryDatapoint)datapoints[datapoints.Count - 1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -493,77 +425,6 @@ namespace ResourceLogger
 			return r;
 		}
 
-		//public override string drawHistoryGraph(int position, int width)
-		//{
-		//	historySeries[0].Points.Clear();
-		//	historySeries[1].Points.Clear();
-
-		//	string historySummary = "";
-		//	int count = 0;
-		//	double totalRead = 0;
-		//	double totalWrite = 0;
-
-
-		//	DateTime prevTime = DateTime.Now;
-		//	for (int i = position; i < position + width - 1 && i < datapointLines.Count - 1; i++)
-		//	{
-		//		var point = datapointLines[i];
-		//		var data = point.Split(',');
-		//		DateTime time = new DateTime(long.Parse(data[0]) * 10000);
-		//		double read = double.Parse(data[1]);
-		//		double write = double.Parse(data[2]);
-		//		TimeSpan span = new TimeSpan(long.Parse(data[3]) * 10000);
-		//		if (historySeries[0].Points.Count > 0)
-		//		{
-		//			TimeSpan spanBetweenPoints = time - prevTime;
-		//			if (spanBetweenPoints > span + span)
-		//			{
-		//				historySeries[0].Points.AddXY(prevTime + span, 0.0);
-		//				historySeries[0].Points.AddXY(time - span, 0.0);
-		//				historySeries[1].Points.AddXY(prevTime + span, 0.0);
-		//				historySeries[1].Points.AddXY(time - span, 0.0);
-		//			}
-		//		}
-		//		prevTime = time;
-		//		historySeries[0].Points.AddXY(time, write / span.TotalSeconds);
-		//		historySeries[1].Points.AddXY(time, read / span.TotalSeconds);
-		//		totalRead += read;
-		//		totalWrite += write;
-		//		count++;//?? eh
-		//	}
-
-
-		//	if (position < datapointLines.Count - 1) // position exists
-		//	{
-		//		var point = datapointLines[position];
-		//		var data = point.Split(',');
-		//		DateTime firstTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		DateTime lastTime;
-		//		if (position + width - 1 > datapointLines.Count - 1)
-		//		{
-		//			point = datapointLines[datapointLines.Count - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-		//		else
-		//		{
-		//			point = datapointLines[position + width - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-
-		//		TimeSpan selectionSpan = lastTime - firstTime;
-		//		historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
-		//						 "Total disk read: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
-		//						 "Total disk write: " + (totalWrite / 1024).ToString("#.000") + "GB" + Environment.NewLine +
-		//						 "Average disk read speed: " + (totalRead / selectionSpan.TotalSeconds).ToString("#.000") + "MB/s" + Environment.NewLine +
-		//						 "Average disk write speed: " + (totalWrite / selectionSpan.TotalSeconds).ToString("#.000") + "MB/s";// + Environment.NewLine +
-
-		//	}
-
-		//	return historySummary;
-		//}
-
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
@@ -578,7 +439,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//DiskDatapoint datapoint = new DiskDatapoint(datapointLines[0]);
 				DiskDatapoint datapoint = (DiskDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -598,9 +458,6 @@ namespace ResourceLogger
 			}
 
 			DateTime prevTime = DateTime.Now;
-			//foreach (var point in datapointLines)
-			//{
-			//	DiskDatapoint datapoint = new DiskDatapoint(point);
 			foreach (var point in datapoints)
 			{
 				DiskDatapoint datapoint = (DiskDatapoint)point;
@@ -625,7 +482,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//DiskDatapoint datapoint = new DiskDatapoint(datapointLines[datapointLines.Count - 1]);
 				DiskDatapoint datapoint = (DiskDatapoint)datapoints[datapoints.Count - 1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -795,77 +651,6 @@ namespace ResourceLogger
 			return r;
 		}
 
-		//public override string drawHistoryGraph(int position, int width)
-		//{
-		//	historySeries[0].Points.Clear();
-		//	historySeries[1].Points.Clear();
-
-		//	string historySummary = "";
-		//	int count = 0;
-		//	double totalRead = 0;
-		//	double totalWrite = 0;
-
-
-		//	DateTime prevTime = DateTime.Now;
-		//	for (int i = position; i < position + width - 1 && i < datapointLines.Count - 1; i++)
-		//	{
-		//		var point = datapointLines[i];
-		//		var data = point.Split(',');
-		//		DateTime time = new DateTime(long.Parse(data[0]) * 10000);
-		//		double read = double.Parse(data[1]);
-		//		double write = double.Parse(data[2]);
-		//		TimeSpan span = new TimeSpan(long.Parse(data[3]) * 10000);
-		//		if (historySeries[0].Points.Count > 0)
-		//		{
-		//			TimeSpan spanBetweenPoints = time - prevTime;
-		//			if (spanBetweenPoints > span + span)
-		//			{
-		//				historySeries[0].Points.AddXY(prevTime + span, 0.0);
-		//				historySeries[0].Points.AddXY(time - span, 0.0);
-		//				historySeries[1].Points.AddXY(prevTime + span, 0.0);
-		//				historySeries[1].Points.AddXY(time - span, 0.0);
-		//			}
-		//		}
-		//		prevTime = time;
-		//		historySeries[0].Points.AddXY(time, write / span.TotalSeconds * 8);
-		//		historySeries[1].Points.AddXY(time, read / span.TotalSeconds * 8);
-		//		totalRead += read;
-		//		totalWrite += write;
-		//		count++;//?? eh
-		//	}
-
-
-		//	if (position < datapointLines.Count - 1) // position exists
-		//	{
-		//		var point = datapointLines[position];
-		//		var data = point.Split(',');
-		//		DateTime firstTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		DateTime lastTime;
-		//		if (position + width - 1 > datapointLines.Count - 1)
-		//		{
-		//			point = datapointLines[datapointLines.Count - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-		//		else
-		//		{
-		//			point = datapointLines[position + width - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-
-		//		TimeSpan selectionSpan = lastTime - firstTime;
-		//		historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
-		//						 "Total network received: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
-		//						 "Total network sent: " + (totalWrite / 1024).ToString("#.000") + "GB" + Environment.NewLine +
-		//						 "Average network received speed: " + (totalRead / selectionSpan.TotalSeconds * 8).ToString("#.000") + "Mbps" + Environment.NewLine +
-		//						 "Average network sent speed: " + (totalWrite / selectionSpan.TotalSeconds * 8).ToString("#.000") + "Mbps";// + Environment.NewLine +
-
-		//	}
-
-		//	return historySummary;
-		//}
-
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
@@ -880,7 +665,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//NetworkDatapoint datapoint = new NetworkDatapoint(datapointLines[0]);
 				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -900,9 +684,6 @@ namespace ResourceLogger
 			}
 
 			DateTime prevTime = DateTime.Now;
-			//foreach (var point in datapointLines)
-			//{
-			//	NetworkDatapoint datapoint = new NetworkDatapoint(point);
 			foreach (var point in datapoints)
 			{
 				NetworkDatapoint datapoint = (NetworkDatapoint)point;
@@ -927,7 +708,6 @@ namespace ResourceLogger
 
 			if (datapointLines.Count > 0)
 			{
-				//NetworkDatapoint datapoint = new NetworkDatapoint(datapointLines[datapointLines.Count-1]);
 				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[datapoints.Count-1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -1062,68 +842,6 @@ namespace ResourceLogger
 			return GetLiveYAxisRange();
 		}
 
-		//public override string drawHistoryGraph(int position, int width)
-		//{
-		//	historySeries[0].Points.Clear();
-
-		//	string historySummary = "";
-		//	int count = 0;
-		//	double total = 0;
-
-		//	DateTime prevTime = DateTime.Now;
-		//	for (int i = position; i < position + width - 1 && i < datapointLines.Count - 1; i++)
-		//	{
-		//		var point = datapointLines[i];
-		//		var data = point.Split(',');
-		//		DateTime time = new DateTime(long.Parse(data[0]) * 10000);
-		//		TimeSpan cpuSpan = new TimeSpan(long.Parse(data[1]) * 10000);
-		//		TimeSpan span = new TimeSpan(long.Parse(data[2]) * 10000);
-		//		double usage = cpuSpan.TotalSeconds / span.TotalSeconds * 100.0;
-
-		//		if (historySeries[0].Points.Count > 0)
-		//		{
-		//			TimeSpan spanBetweenPoints = time - prevTime;
-		//			if (spanBetweenPoints > span + span)
-		//			{
-		//				DateTime first = prevTime + span;
-		//				DateTime second = time - span;
-		//				historySeries[0].Points.AddXY(first, usage);
-		//				historySeries[0].Points.AddXY(second, usage);
-		//			}
-		//		}
-		//		prevTime = time;
-		//		historySeries[0].Points.AddXY(time, usage);
-		//		total += usage;
-		//		count++;
-		//	}
-
-		//	if (position < datapointLines.Count - 1) // position exists
-		//	{
-		//		var point = datapointLines[position];
-		//		var data = point.Split(',');
-		//		DateTime firstTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		DateTime lastTime;
-		//		if (position + width - 1 > datapointLines.Count - 1)
-		//		{
-		//			point = datapointLines[datapointLines.Count - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-		//		else
-		//		{
-		//			point = datapointLines[position + width - 1];
-		//			data = point.Split(',');
-		//			lastTime = new DateTime(long.Parse(data[0]) * 10000);
-		//		}
-
-		//		TimeSpan selectionSpan = lastTime - firstTime;
-		//		historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
-		//						 "Average CPU usage: " + (total / count).ToString("#.000") + "%";// + Environment.NewLine;
-		//	}
-
-		//	return historySummary;
-		//}
-
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
@@ -1153,9 +871,6 @@ namespace ResourceLogger
 			}
 
 			DateTime prevTime = DateTime.Now;
-			//foreach (var point in datapointLines)
-			//{
-			//	CPUDatapoint datapoint = new CPUDatapoint(point);
 			foreach (var point in datapoints)
 			{
 				CPUDatapoint datapoint = (CPUDatapoint)point;
@@ -1178,7 +893,6 @@ namespace ResourceLogger
 
 			if (datapointLines.Count > 0)
 			{
-				//CPUDatapoint datapoint = new CPUDatapoint(datapointLines[datapointLines.Count-1]);
 				CPUDatapoint datapoint = (CPUDatapoint)datapoints[datapoints.Count-1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
