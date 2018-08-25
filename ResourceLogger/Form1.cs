@@ -151,7 +151,7 @@ namespace ResourceLogger
 			DateTime position = logger.systemLog.getSelectedInstance().GetFirstDatapointDateTime() +
 								TimeSpan.FromSeconds(hScrollBar1.Value);
 
-			historySummary = logger.systemLog.getSelectedInstance().drawHistoryGraph(position, historyInteval, historyDatapopintThinning(historyInteval));
+			historySummary = logger.systemLog.getSelectedInstance().drawHistoryGraph(position, historyInteval, historyDatapopintPointWidth(historyInteval));
 
 			historySummaryLabel.Text = historySummary;
 			reevaluateHistoryAxes(position, historyInteval);
@@ -183,7 +183,8 @@ namespace ResourceLogger
 		{
 			historyDatapointsLabel.Text = historyInteval.ToString();
 			hScrollBar1.LargeChange = (int)historyInteval.TotalSeconds;
-			hScrollBar1.SmallChange = historyDatapopintThinning(historyInteval);
+			hScrollBar1.SmallChange = 1;
+			//hScrollBar1.SmallChange = historyDatapopintPointWidth(historyInteval); // todo small change 
 			if (hScrollBar1.Value > hScrollBar1.Maximum - hScrollBar1.LargeChange)
 			{
 				hScrollBar1.Value = hScrollBar1.Maximum - hScrollBar1.LargeChange + 1;
@@ -194,11 +195,9 @@ namespace ResourceLogger
 			}
 		}
 
-		private int historyDatapopintThinning(TimeSpan width)
+		private TimeSpan historyDatapopintPointWidth(TimeSpan width)
 		{
-			
-			int seconds = (int)width.TotalSeconds;
-			return (seconds / Config.HistoryDatapointLines) + 1;
+			return TimeSpan.FromTicks(width.Ticks / Config.HistoryDatapointLines);
 		}
 	}
 }

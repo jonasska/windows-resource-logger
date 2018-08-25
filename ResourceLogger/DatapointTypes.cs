@@ -41,6 +41,12 @@ namespace ResourceLogger
 				span += point.span;
 			}
 		}
+
+		public void addDatapoint(string point)
+		{
+			MemoryDatapoint p = new MemoryDatapoint(point);
+			span += p.span;
+		}
 	}
 
 	public class DiskDatapoint : Datapoint
@@ -71,6 +77,15 @@ namespace ResourceLogger
 				span += point.span;
 			}
 		}
+
+		public void addDatapoint(string point)
+		{
+			DiskDatapoint p = new DiskDatapoint(point);
+			read += p.read;
+			write += p.write;
+			span += p.span;
+		}
+
 	}
 
 	public class NetworkDatapoint : Datapoint
@@ -100,6 +115,14 @@ namespace ResourceLogger
 				write += point.write;
 				span += point.span;
 			}
+		}
+
+		public void addDatapoint(string point)
+		{
+			NetworkDatapoint p = new NetworkDatapoint(point);
+			read += p.read;
+			write += p.write;
+			span += p.span;
 		}
 	}
 
@@ -135,6 +158,14 @@ namespace ResourceLogger
 			//	TimeSpan s = new CPUDatapoint(points[points.Count - 1]).time - new CPUDatapoint(points[0]).time;
 			//	Debug.WriteLine(s);
 			//}
+		}
+
+		public void addDatapoint(string point)
+		{
+			CPUDatapoint p = new CPUDatapoint(point);
+			cpuSpan += p.cpuSpan;
+			span += p.span;
+			usage = 100 * cpuSpan.TotalSeconds / span.TotalSeconds;
 		}
 	}
 }

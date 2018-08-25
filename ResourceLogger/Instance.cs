@@ -34,9 +34,9 @@ namespace ResourceLogger
 
 		//public abstract string drawHistoryGraph(int position, int width);
 
-		public abstract string drawHistoryGraph(DateTime start, TimeSpan width, int thinFactor);
+		public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
 
-		protected abstract void parseDatapoints(TimeSpan width, int thinFactor);
+		protected abstract void parseDatapoints(TimeSpan width, TimeSpan pointWidth);
 
 		protected AnInstance()
 		{
@@ -70,7 +70,7 @@ namespace ResourceLogger
 			return historySeries;
 		}
 
-		protected void readRelevantDatapoints(DateTime position, TimeSpan width, int thinFactor)
+		protected void readRelevantDatapoints(DateTime position, TimeSpan width, TimeSpan pointWidth)
 		{
 			if (System.IO.Directory.Exists(Config.systemDirectory))
 			{
@@ -103,7 +103,7 @@ namespace ResourceLogger
 					}
 				}
 			}
-			parseDatapoints(width, thinFactor);
+			parseDatapoints(width, pointWidth);
 		}
 
 		public DateTime GetFirstDatapointDateTime()
@@ -264,11 +264,11 @@ namespace ResourceLogger
 		//	return historySummary;
 		//}
 
-		public override string drawHistoryGraph(DateTime start, TimeSpan width, int thinFactor)
+		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
 
-			readRelevantDatapoints(start, width, thinFactor);
+			readRelevantDatapoints(start, width, pointWidth);
 
 			string historySummary = "";
 			int count = 0;
@@ -337,14 +337,18 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-		protected override void parseDatapoints(TimeSpan width, int thinFactor)
+		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
 		{
 			datapoints.Clear();
 
-			for (int i = 0; i+ thinFactor < datapointLines.Count; i+= thinFactor)
+			for (int i = 0; i< datapointLines.Count; i++)
 			{
-				var points = datapointLines.GetRange(i, thinFactor);
-				datapoints.Add(new MemoryDatapoint(points));
+				var datapoint = new MemoryDatapoint(datapointLines[i]);
+				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
+				{
+					datapoint.addDatapoint(datapointLines[i]);
+				}
+				datapoints.Add(datapoint);
 			}
 		}
 	}
@@ -549,7 +553,7 @@ namespace ResourceLogger
 		//	return historySummary;
 		//}
 
-		public override string drawHistoryGraph(DateTime start, TimeSpan width, int thinFactor)
+		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
 			historySeries[1].Points.Clear();
@@ -559,7 +563,7 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			readRelevantDatapoints(start, width, thinFactor);
+			readRelevantDatapoints(start, width, pointWidth);
 
 			if (datapoints.Count > 0)
 			{
@@ -637,14 +641,18 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-		protected override void parseDatapoints(TimeSpan width, int thinFactor)
+		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
 		{
 			datapoints.Clear();
 
-			for (int i = 0; i + thinFactor < datapointLines.Count; i += thinFactor)
+			for (int i = 0; i < datapointLines.Count; i++)
 			{
-				var points = datapointLines.GetRange(i, thinFactor);
-				datapoints.Add(new DiskDatapoint(points));
+				var datapoint = new DiskDatapoint(datapointLines[i]);
+				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
+				{
+					datapoint.addDatapoint(datapointLines[i]);
+				}
+				datapoints.Add(datapoint);
 			}
 		}
 	};
@@ -847,7 +855,7 @@ namespace ResourceLogger
 		//	return historySummary;
 		//}
 
-		public override string drawHistoryGraph(DateTime start, TimeSpan width, int thinFactor)
+		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
 			historySeries[1].Points.Clear();
@@ -857,7 +865,7 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			readRelevantDatapoints(start, width, thinFactor);
+			readRelevantDatapoints(start, width, pointWidth);
 
 			if (datapoints.Count > 0)
 			{
@@ -935,14 +943,18 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-		protected override void parseDatapoints(TimeSpan width, int thinFactor)
+		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
 		{
 			datapoints.Clear();
 
-			for (int i = 0; i + thinFactor < datapointLines.Count; i += thinFactor)
+			for (int i = 0; i < datapointLines.Count; i++)
 			{
-				var points = datapointLines.GetRange(i, thinFactor);
-				datapoints.Add(new NetworkDatapoint(points));
+				var datapoint = new NetworkDatapoint(datapointLines[i]);
+				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
+				{
+					datapoint.addDatapoint(datapointLines[i]);
+				}
+				datapoints.Add(datapoint);
 			}
 		}
 	};
@@ -1101,11 +1113,11 @@ namespace ResourceLogger
 		//	return historySummary;
 		//}
 
-		public override string drawHistoryGraph(DateTime start, TimeSpan width, int thinFactor)
+		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
 
-			readRelevantDatapoints(start, width, thinFactor);
+			readRelevantDatapoints(start, width, pointWidth);
 
 			string historySummary = "";
 			int count = 0;
@@ -1177,14 +1189,18 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-		protected override void parseDatapoints(TimeSpan width, int thinFactor)
+		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
 		{
 			datapoints.Clear();
-			
-			for (int i = 0; i + thinFactor < datapointLines.Count; i += thinFactor)
+
+			for (int i = 0; i < datapointLines.Count; i++)
 			{
-				var points = datapointLines.GetRange(i, thinFactor);
-				datapoints.Add(new CPUDatapoint(points));
+				var datapoint = new CPUDatapoint(datapointLines[i]);
+				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
+				{
+					datapoint.addDatapoint(datapointLines[i]);
+				}
+				datapoints.Add(datapoint);
 			}
 		}
 	}
