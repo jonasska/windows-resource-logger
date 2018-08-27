@@ -70,7 +70,7 @@ namespace ResourceLogger
 
 		protected void readRelevantDatapoints(DateTime position, TimeSpan width, TimeSpan pointWidth)
 		{
-			if (System.IO.Directory.Exists(Config.systemDirectory))
+			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
 			{
 				if (System.IO.Directory.Exists(filepath2))
 				{
@@ -117,7 +117,7 @@ namespace ResourceLogger
 
 		public DateTime GetFirstDatapointDateTime()
 		{
-			if (System.IO.Directory.Exists(Config.systemDirectory))
+			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
 			{
 				if (System.IO.Directory.Exists(filepath2))
 				{
@@ -153,8 +153,8 @@ namespace ResourceLogger
 			memCounter = new PerformanceCounter("Memory", "Available MBytes");
 			totalMemory = (int)GetTotalMemoryInMBytes();
 
-			filepath = Config.systemDirectory + "MemoryTotal.txt";//  ???
-			filepath2 = Config.systemDirectory + "MemoryDatapoints/";//+ "MemoryDatapoints.txt";
+			filepath = Properties.Settings.Default.SystemDirectory + "MemoryTotal.txt";//  ???
+			filepath2 = Properties.Settings.Default.SystemDirectory + "MemoryDatapoints/";//+ "MemoryDatapoints.txt";
 
 			//readInfoFromFile();  //????
 
@@ -177,7 +177,7 @@ namespace ResourceLogger
 
 		private void saveInfoToFile()
 		{
-			System.IO.Directory.CreateDirectory(Config.systemDirectory);
+			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
 			System.IO.Directory.CreateDirectory(filepath2);
 			//System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
 			//writer.WriteLine(); // total mem????
@@ -187,7 +187,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
+			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -318,8 +318,8 @@ namespace ResourceLogger
 			totalDataWritten = 0;
 			totalDataRead = 0;
 
-			filepath = Config.systemDirectory + instanceName.Replace(':', ' ') + "Total.txt";
-			filepath2 = Config.systemDirectory + instanceName.Replace(':', ' ') + " datapoints/";
+			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + "Total.txt";
+			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + " datapoints/";
 
 			readInfoFromFile();
 
@@ -331,7 +331,7 @@ namespace ResourceLogger
 
 		private void saveInfoToFile()
 		{
-			System.IO.Directory.CreateDirectory(Config.systemDirectory);
+			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
 			System.IO.Directory.CreateDirectory(filepath2);
 			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
 			writer.WriteLine(totalDataRead);
@@ -341,7 +341,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
+			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -369,7 +369,7 @@ namespace ResourceLogger
 
 		private void readInfoFromFile()
 		{
-			if (System.IO.Directory.Exists(Config.systemDirectory))
+			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
 			{
 				if (System.IO.File.Exists(filepath))
 				{
@@ -544,8 +544,8 @@ namespace ResourceLogger
 			totalDataWritten = 0;
 			totalDataRead = 0;
 
-			filepath = Config.systemDirectory + instanceName.Replace(':', ' ') + "networkTotal.txt";
-			filepath2 = Config.systemDirectory + instanceName.Replace(':', ' ') + " networkDatapoints/";
+			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + "networkTotal.txt";
+			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + " networkDatapoints/";
 
 			readInfoFromFile();
 
@@ -557,7 +557,7 @@ namespace ResourceLogger
 
 		private void saveInfoToFile()
 		{
-			System.IO.Directory.CreateDirectory(Config.systemDirectory);
+			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
 			System.IO.Directory.CreateDirectory(filepath2);
 			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
 			writer.WriteLine(totalDataRead);
@@ -567,7 +567,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
+			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -595,7 +595,7 @@ namespace ResourceLogger
 
 		private void readInfoFromFile()
 		{
-			if (System.IO.Directory.Exists(Config.systemDirectory))
+			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
 			{
 				if (System.IO.File.Exists(filepath))
 				{
@@ -763,8 +763,8 @@ namespace ResourceLogger
 			instanceName = name;
 			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Time", "_Total");
 
-			filepath = Config.systemDirectory + "CPUTotal.txt";
-			filepath2 = Config.systemDirectory + "CPUDatapoints/";
+			filepath = Properties.Settings.Default.SystemDirectory + "CPUTotal.txt";
+			filepath2 = Properties.Settings.Default.SystemDirectory + "CPUDatapoints/";
 
 			readInfoFromFile();
 
@@ -793,7 +793,7 @@ namespace ResourceLogger
 
 		private void saveInfoToFile()
 		{
-			System.IO.Directory.CreateDirectory(Config.systemDirectory);
+			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
 			System.IO.Directory.CreateDirectory(filepath2);
 			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
 			string line = totalCpuSpan.Ticks + "," + totalCpuSpan;
@@ -806,7 +806,7 @@ namespace ResourceLogger
 			line += Environment.NewLine;
 			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
 			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Config.DatapointsInOneFile)
+			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
 			{
 				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
 				pointsInTheLatestFile = 0;
@@ -815,7 +815,7 @@ namespace ResourceLogger
 
 		private void readInfoFromFile()
 		{
-			if (System.IO.Directory.Exists(Config.systemDirectory))
+			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
 			{
 				if (System.IO.File.Exists(filepath))
 				{

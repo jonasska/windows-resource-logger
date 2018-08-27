@@ -26,7 +26,7 @@ namespace ResourceLogger
 			InitializeComponent();
 			logger = new Logger();
 
-			timer1.Interval = Config.SamplingInterval * 1000;
+			timer1.Interval = Properties.Settings.Default.SamplingInterval * 1000;
 
 			historyInteval = TimeSpan.FromMinutes(10);
 			historyDatapointsLabel.Text = historyInteval.ToString();
@@ -52,6 +52,7 @@ namespace ResourceLogger
 			chart2.ChartAreas[0].AxisX.Enabled = AxisEnabled.False;
 
 			reloadHistoryButton_Click(null, null);
+			fillSettingsTextFields();
 		}
 
 		private void timer1_Tick(object sender, EventArgs e)
@@ -60,7 +61,7 @@ namespace ResourceLogger
 
 			foreach (var ser in chart1.Series)
 			{
-				while (ser.Points.Count > Config.LivePoints)
+				while (ser.Points.Count > Properties.Settings.Default.LivePoints)
 				{
 					ser.Points.RemoveAt(0);
 				}
@@ -175,8 +176,7 @@ namespace ResourceLogger
 		{
 			historyDatapointsLabel.Text = historyInteval.ToString();
 			hScrollBar1.LargeChange = (int)historyInteval.TotalSeconds;
-			hScrollBar1.SmallChange = 1;
-			//hScrollBar1.SmallChange = historyDatapopintPointWidth(historyInteval); // todo small change 
+			hScrollBar1.SmallChange =  (int)(historyInteval.TotalSeconds/50);
 			if (hScrollBar1.Value > hScrollBar1.Maximum - hScrollBar1.LargeChange)
 			{
 				hScrollBar1.Value = hScrollBar1.Maximum - hScrollBar1.LargeChange + 1;
@@ -189,7 +189,51 @@ namespace ResourceLogger
 
 		private TimeSpan historyDatapopintPointWidth(TimeSpan width)
 		{
-			return TimeSpan.FromTicks(width.Ticks / Config.HistoryDatapointLines);
+			return TimeSpan.FromTicks(width.Ticks / Properties.Settings.Default.HistoryPoints);
+			//return TimeSpan.FromTicks(width.Ticks / Config.HistoryPoints);
+		}
+
+		private void systemLogDirectoryButton_Click(object sender, EventArgs e)
+		{
+			folderBrowserDialog1.ShowDialog();
+			if (folderBrowserDialog1.SelectedPath != null)
+			{
+				var folder = folderBrowserDialog1.SelectedPath;
+				textBox1.Text = folder;
+			}
+		}
+
+		private void restoreDefaultSettingsButton_Click(object sender, EventArgs e)
+		{
+			Properties.Settings.Default.Reset();
+			fillSettingsTextFields();
+		}
+		
+		private void cancelSettingsButton_Click(object sender, EventArgs e)
+		{
+			fillSettingsTextFields();
+		}
+
+		private void saveSettingButton_Click(object sender, EventArgs e)
+		{
+			Properties.Settings.Default.SystemDirectory = textBox1.Text;
+
+			Properties.Settings.Default.SamplingInterval = int.Parse(textBox2.Text);
+			Properties.Settings.Default.DatapointsInOneFile = int.Parse(textBox3.Text);
+			Properties.Settings.Default.LivePoints = int.Parse(textBox4.Text);
+			Properties.Settings.Default.HistoryPoints = int.Parse(textBox5.Text);
+
+			Properties.Settings.Default.Save();
+		}
+
+		private void fillSettingsTextFields()
+		{
+			textBox1.Text = Properties.Settings.Default.SystemDirectory;
+
+			textBox2.Text = Properties.Settings.Default.SamplingInterval.ToString();
+			textBox3.Text = Properties.Settings.Default.DatapointsInOneFile.ToString();
+			textBox4.Text = Properties.Settings.Default.LivePoints.ToString();
+			textBox5.Text = Properties.Settings.Default.HistoryPoints.ToString();
 		}
 	}
 }

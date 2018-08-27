@@ -49,11 +49,28 @@ namespace ResourceLogger
 			this.reloadHistoryButton = new System.Windows.Forms.Button();
 			this.chart2 = new System.Windows.Forms.DataVisualization.Charting.Chart();
 			this.hScrollBar1 = new System.Windows.Forms.HScrollBar();
+			this.tabPage3 = new System.Windows.Forms.TabPage();
+			this.restoreDefaultSettingsButton = new System.Windows.Forms.Button();
+			this.cancelSettingsButton = new System.Windows.Forms.Button();
+			this.saveSettingButton = new System.Windows.Forms.Button();
+			this.systemLogDirectoryButton = new System.Windows.Forms.Button();
+			this.textBox5 = new System.Windows.Forms.TextBox();
+			this.textBox4 = new System.Windows.Forms.TextBox();
+			this.textBox3 = new System.Windows.Forms.TextBox();
+			this.textBox2 = new System.Windows.Forms.TextBox();
+			this.textBox1 = new System.Windows.Forms.TextBox();
+			this.label6 = new System.Windows.Forms.Label();
+			this.label5 = new System.Windows.Forms.Label();
+			this.label4 = new System.Windows.Forms.Label();
+			this.label3 = new System.Windows.Forms.Label();
+			this.label2 = new System.Windows.Forms.Label();
+			this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
 			((System.ComponentModel.ISupportInitialize)(this.chart1)).BeginInit();
 			this.tabControl1.SuspendLayout();
 			this.tabPage1.SuspendLayout();
 			this.tabPage2.SuspendLayout();
 			((System.ComponentModel.ISupportInitialize)(this.chart2)).BeginInit();
+			this.tabPage3.SuspendLayout();
 			this.SuspendLayout();
 			// 
 			// listBox1
@@ -98,6 +115,7 @@ namespace ResourceLogger
             | System.Windows.Forms.AnchorStyles.Right)));
 			this.tabControl1.Controls.Add(this.tabPage1);
 			this.tabControl1.Controls.Add(this.tabPage2);
+			this.tabControl1.Controls.Add(this.tabPage3);
 			this.tabControl1.Location = new System.Drawing.Point(12, 12);
 			this.tabControl1.Name = "tabControl1";
 			this.tabControl1.SelectedIndex = 0;
@@ -221,6 +239,153 @@ namespace ResourceLogger
 			this.hScrollBar1.TabIndex = 0;
 			this.hScrollBar1.ValueChanged += new System.EventHandler(this.hScrollBar1_ValueChanged);
 			// 
+			// tabPage3
+			// 
+			this.tabPage3.Controls.Add(this.restoreDefaultSettingsButton);
+			this.tabPage3.Controls.Add(this.cancelSettingsButton);
+			this.tabPage3.Controls.Add(this.saveSettingButton);
+			this.tabPage3.Controls.Add(this.systemLogDirectoryButton);
+			this.tabPage3.Controls.Add(this.textBox5);
+			this.tabPage3.Controls.Add(this.textBox4);
+			this.tabPage3.Controls.Add(this.textBox3);
+			this.tabPage3.Controls.Add(this.textBox2);
+			this.tabPage3.Controls.Add(this.textBox1);
+			this.tabPage3.Controls.Add(this.label6);
+			this.tabPage3.Controls.Add(this.label5);
+			this.tabPage3.Controls.Add(this.label4);
+			this.tabPage3.Controls.Add(this.label3);
+			this.tabPage3.Controls.Add(this.label2);
+			this.tabPage3.Location = new System.Drawing.Point(4, 22);
+			this.tabPage3.Name = "tabPage3";
+			this.tabPage3.Padding = new System.Windows.Forms.Padding(3);
+			this.tabPage3.Size = new System.Drawing.Size(943, 636);
+			this.tabPage3.TabIndex = 2;
+			this.tabPage3.Text = "Configuration";
+			this.tabPage3.UseVisualStyleBackColor = true;
+			// 
+			// restoreDefaultSettingsButton
+			// 
+			this.restoreDefaultSettingsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+			this.restoreDefaultSettingsButton.Location = new System.Drawing.Point(6, 607);
+			this.restoreDefaultSettingsButton.Name = "restoreDefaultSettingsButton";
+			this.restoreDefaultSettingsButton.Size = new System.Drawing.Size(75, 23);
+			this.restoreDefaultSettingsButton.TabIndex = 4;
+			this.restoreDefaultSettingsButton.Text = "Default";
+			this.restoreDefaultSettingsButton.UseVisualStyleBackColor = true;
+			this.restoreDefaultSettingsButton.Click += new System.EventHandler(this.restoreDefaultSettingsButton_Click);
+			// 
+			// cancelSettingsButton
+			// 
+			this.cancelSettingsButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+			this.cancelSettingsButton.Location = new System.Drawing.Point(781, 607);
+			this.cancelSettingsButton.Name = "cancelSettingsButton";
+			this.cancelSettingsButton.Size = new System.Drawing.Size(75, 23);
+			this.cancelSettingsButton.TabIndex = 4;
+			this.cancelSettingsButton.Text = "Cancel";
+			this.cancelSettingsButton.UseVisualStyleBackColor = true;
+			this.cancelSettingsButton.Click += new System.EventHandler(this.cancelSettingsButton_Click);
+			// 
+			// saveSettingButton
+			// 
+			this.saveSettingButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+			this.saveSettingButton.Location = new System.Drawing.Point(862, 607);
+			this.saveSettingButton.Name = "saveSettingButton";
+			this.saveSettingButton.Size = new System.Drawing.Size(75, 23);
+			this.saveSettingButton.TabIndex = 3;
+			this.saveSettingButton.Text = "Save";
+			this.saveSettingButton.UseVisualStyleBackColor = true;
+			this.saveSettingButton.Click += new System.EventHandler(this.saveSettingButton_Click);
+			// 
+			// systemLogDirectoryButton
+			// 
+			this.systemLogDirectoryButton.Location = new System.Drawing.Point(412, 33);
+			this.systemLogDirectoryButton.Name = "systemLogDirectoryButton";
+			this.systemLogDirectoryButton.Size = new System.Drawing.Size(75, 23);
+			this.systemLogDirectoryButton.TabIndex = 2;
+			this.systemLogDirectoryButton.Text = "Browse";
+			this.systemLogDirectoryButton.UseVisualStyleBackColor = true;
+			this.systemLogDirectoryButton.Click += new System.EventHandler(this.systemLogDirectoryButton_Click);
+			// 
+			// textBox5
+			// 
+			this.textBox5.Location = new System.Drawing.Point(183, 137);
+			this.textBox5.Name = "textBox5";
+			this.textBox5.Size = new System.Drawing.Size(223, 20);
+			this.textBox5.TabIndex = 1;
+			// 
+			// textBox4
+			// 
+			this.textBox4.Location = new System.Drawing.Point(183, 111);
+			this.textBox4.Name = "textBox4";
+			this.textBox4.Size = new System.Drawing.Size(223, 20);
+			this.textBox4.TabIndex = 1;
+			// 
+			// textBox3
+			// 
+			this.textBox3.Location = new System.Drawing.Point(183, 85);
+			this.textBox3.Name = "textBox3";
+			this.textBox3.Size = new System.Drawing.Size(223, 20);
+			this.textBox3.TabIndex = 1;
+			// 
+			// textBox2
+			// 
+			this.textBox2.Location = new System.Drawing.Point(183, 59);
+			this.textBox2.Name = "textBox2";
+			this.textBox2.Size = new System.Drawing.Size(223, 20);
+			this.textBox2.TabIndex = 1;
+			// 
+			// textBox1
+			// 
+			this.textBox1.Location = new System.Drawing.Point(183, 33);
+			this.textBox1.Name = "textBox1";
+			this.textBox1.Size = new System.Drawing.Size(223, 20);
+			this.textBox1.TabIndex = 1;
+			// 
+			// label6
+			// 
+			this.label6.AutoSize = true;
+			this.label6.Location = new System.Drawing.Point(33, 137);
+			this.label6.Name = "label6";
+			this.label6.Size = new System.Drawing.Size(115, 13);
+			this.label6.TabIndex = 0;
+			this.label6.Text = "# Display history points";
+			// 
+			// label5
+			// 
+			this.label5.AutoSize = true;
+			this.label5.Location = new System.Drawing.Point(33, 111);
+			this.label5.Name = "label5";
+			this.label5.Size = new System.Drawing.Size(101, 13);
+			this.label5.TabIndex = 0;
+			this.label5.Text = "# Display live points";
+			// 
+			// label4
+			// 
+			this.label4.AutoSize = true;
+			this.label4.Location = new System.Drawing.Point(33, 85);
+			this.label4.Name = "label4";
+			this.label4.Size = new System.Drawing.Size(133, 13);
+			this.label4.TabIndex = 0;
+			this.label4.Text = "# Datapoints in one log file";
+			// 
+			// label3
+			// 
+			this.label3.AutoSize = true;
+			this.label3.Location = new System.Drawing.Point(33, 59);
+			this.label3.Name = "label3";
+			this.label3.Size = new System.Drawing.Size(136, 13);
+			this.label3.TabIndex = 0;
+			this.label3.Text = "Sampling interval (seconds)";
+			// 
+			// label2
+			// 
+			this.label2.AutoSize = true;
+			this.label2.Location = new System.Drawing.Point(33, 33);
+			this.label2.Name = "label2";
+			this.label2.Size = new System.Drawing.Size(101, 13);
+			this.label2.TabIndex = 0;
+			this.label2.Text = "System log directory";
+			// 
 			// Form1
 			// 
 			this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -236,6 +401,8 @@ namespace ResourceLogger
 			this.tabPage2.ResumeLayout(false);
 			this.tabPage2.PerformLayout();
 			((System.ComponentModel.ISupportInitialize)(this.chart2)).EndInit();
+			this.tabPage3.ResumeLayout(false);
+			this.tabPage3.PerformLayout();
 			this.ResumeLayout(false);
 
         }
@@ -257,6 +424,22 @@ namespace ResourceLogger
 		private System.Windows.Forms.Button historyDatapointsUpLabel;
 		private System.Windows.Forms.Label historyDatapointsLabel;
 		private System.Windows.Forms.Label historySummaryLabel;
+		private System.Windows.Forms.TabPage tabPage3;
+		private System.Windows.Forms.Label label2;
+		private System.Windows.Forms.Button systemLogDirectoryButton;
+		private System.Windows.Forms.TextBox textBox5;
+		private System.Windows.Forms.TextBox textBox4;
+		private System.Windows.Forms.TextBox textBox3;
+		private System.Windows.Forms.TextBox textBox2;
+		private System.Windows.Forms.TextBox textBox1;
+		private System.Windows.Forms.Label label6;
+		private System.Windows.Forms.Label label5;
+		private System.Windows.Forms.Label label4;
+		private System.Windows.Forms.Label label3;
+		private System.Windows.Forms.Button restoreDefaultSettingsButton;
+		private System.Windows.Forms.Button cancelSettingsButton;
+		private System.Windows.Forms.Button saveSettingButton;
+		private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
 	}
 }
 
