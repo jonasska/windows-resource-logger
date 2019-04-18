@@ -318,8 +318,8 @@ namespace ResourceLogger
 			totalDataWritten = 0;
 			totalDataRead = 0;
 
-			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + "Total.txt";
-			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + " datapoints/";
+			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + "Total.txt";
+			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + " datapoints/";
 
 			readInfoFromFile();
 
@@ -544,8 +544,8 @@ namespace ResourceLogger
 			totalDataWritten = 0;
 			totalDataRead = 0;
 
-			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + "networkTotal.txt";
-			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ') + " networkDatapoints/";
+			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + "networkTotal.txt";
+			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + " networkDatapoints/";
 
 			readInfoFromFile();
 
@@ -761,7 +761,7 @@ namespace ResourceLogger
 		public CpuInstance(string name)
 		{
 			instanceName = name;
-			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Time", "_Total");
+			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
 
 			filepath = Properties.Settings.Default.SystemDirectory + "CPUTotal.txt";
 			filepath2 = Properties.Settings.Default.SystemDirectory + "CPUDatapoints/";
