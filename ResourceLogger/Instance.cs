@@ -20,7 +20,7 @@ namespace ResourceLogger
 
         protected List<Series> liveSeries;
 		protected List<Series> historySeries;
-		protected TimeSpan currentSpan;
+		//protected TimeSpan currentSpan;
 
 		protected List<Datapoint> datapoints;
 
@@ -78,7 +78,6 @@ namespace ResourceLogger
 	{
 		private PerformanceCounter memCounter;
 		private int totalMemory;
-		private double currentMemUsage;
         public MemoryDatapoint currentDatapoint { get; private set; }
 
         public MemoryInstance(string name)
@@ -103,10 +102,9 @@ namespace ResourceLogger
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
-			currentMemUsage = totalMemory - memCounter.NextValue();
-			currentSpan = span;
+			int currentMemUsage = totalMemory - (int)memCounter.NextValue();
 
-            currentDatapoint = new MemoryDatapoint(DateTime.Now, currentSpan, (int)currentMemUsage);
+            currentDatapoint = new MemoryDatapoint(DateTime.Now, span, currentMemUsage);
 
 			writeToSeries();
             saveInfoToDB(db);
@@ -119,7 +117,7 @@ namespace ResourceLogger
 
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentMemUsage);
+			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.mem);
 		}
 
 		public override AxisRange GetLiveYAxisRange()
@@ -229,12 +227,6 @@ namespace ResourceLogger
 	{
 		public PerformanceCounter readCounter;
 		public PerformanceCounter writeCounter;
-		float currentWriteSpeed;
-		float currentReadSpeed;
-		public double totalDataWritten;
-		public double totalDataRead;
-		double currentDataWrite;
-		double currentDataRead;
         public DiskDatapoint currentDatapoint { get; private set; }
 
 
@@ -243,9 +235,6 @@ namespace ResourceLogger
 			instanceName = name + "disk usage";
 			readCounter = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", name);
 			writeCounter = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", name);
-
-			totalDataWritten = 0;
-			totalDataRead = 0;
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
@@ -265,21 +254,18 @@ namespace ResourceLogger
 
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentWriteSpeed / 1024 / 1024);
-			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024);
+			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.write / currentDatapoint.span.TotalSeconds);
+			liveSeries[1].Points.AddXY(DateTime.Now, currentDatapoint.read / currentDatapoint.span.TotalSeconds);
 		}
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
-			currentWriteSpeed = writeCounter.NextValue();
-			currentReadSpeed = readCounter.NextValue();
-			currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
-			currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
-			totalDataWritten += currentDataWrite;
-			totalDataRead += currentDataRead;
-			currentSpan = span;
+            double currentWriteSpeed = writeCounter.NextValue();
+            double currentReadSpeed = readCounter.NextValue();
+            double currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
+            double currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
 
-            currentDatapoint = new DiskDatapoint(DateTime.Now, currentSpan, currentDataRead, currentDataWrite, instanceName);
+            currentDatapoint = new DiskDatapoint(DateTime.Now, span, currentDataRead, currentDataWrite, instanceName);
 
 			writeToSeries();
             saveInfoToDB(db);
@@ -435,12 +421,6 @@ namespace ResourceLogger
 	{
 		public PerformanceCounter readCounter;
 		public PerformanceCounter writeCounter;
-		float currentWriteSpeed;
-		float currentReadSpeed;
-		public double totalDataWritten;
-		public double totalDataRead;
-		double currentDataWrite;
-		double currentDataRead;
         public NetworkDatapoint currentDatapoint { get; private set; }
 
         public NetworkInstance(string name)
@@ -448,9 +428,6 @@ namespace ResourceLogger
 			instanceName = name + "network usage";
 			readCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", name);
 			writeCounter = new PerformanceCounter("Network Interface", "Bytes Sent/sec", name);
-
-			totalDataWritten = 0;
-			totalDataRead = 0;
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
@@ -471,25 +448,21 @@ namespace ResourceLogger
 
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentWriteSpeed / 1024 / 1024 * 8);
-			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024 * 8);
+			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.write / currentDatapoint.span.TotalSeconds * 8);
+			liveSeries[1].Points.AddXY(DateTime.Now, currentDatapoint.read / currentDatapoint.span.TotalSeconds * 8);
 		}
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
-			currentWriteSpeed = writeCounter.NextValue();
-			currentReadSpeed = readCounter.NextValue();
-			currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
-			currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
-			totalDataWritten += currentDataWrite;
-			totalDataRead += currentDataRead;
-			currentSpan = span;
+			double currentWriteSpeed = writeCounter.NextValue();
+            double currentReadSpeed = readCounter.NextValue();
+            double currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
+            double currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
 
-            currentDatapoint = new NetworkDatapoint(DateTime.Now,currentSpan,currentDataRead,currentDataWrite,instanceName);
+            currentDatapoint = new NetworkDatapoint(DateTime.Now,span,currentDataRead,currentDataWrite,instanceName);
 
 			writeToSeries();
             saveInfoToDB(db);
-
         }
 
 		public override AxisRange GetLiveYAxisRange()
@@ -641,12 +614,7 @@ namespace ResourceLogger
 	public class CpuInstance : AnInstance
 	{
 		PerformanceCounter totalCpuTimeCount;
-		public float currentCpuUsage;
-		public TimeSpan totalCpuSpan { get; private set; } // cpu time 
-		public TimeSpan totalSpan { get; private set; } // total time 
-		public TimeSpan currentCpuSpan { get; private set; }
         public CPUDatapoint currentDatapoint { get; private set; }
-
 
         public CpuInstance(string name)
 		{
@@ -664,21 +632,17 @@ namespace ResourceLogger
 
 		private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentCpuUsage);
+			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.usage);
 
 		}
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
-			currentCpuUsage = totalCpuTimeCount.NextValue();
+			float currentCpuUsage = totalCpuTimeCount.NextValue();
 			long cpuElapsed = (long)(span.Ticks * currentCpuUsage / 100);
 			TimeSpan currentcpuSpan = new TimeSpan(cpuElapsed);
-			totalCpuSpan = totalCpuSpan.Add(currentcpuSpan);
-			totalSpan = totalSpan.Add(span);
-			currentCpuSpan = currentcpuSpan;
-			currentSpan = span;
 
-            currentDatapoint = new CPUDatapoint(DateTime.Now, currentCpuSpan, currentSpan);
+            currentDatapoint = new CPUDatapoint(DateTime.Now, currentcpuSpan, span);
 
 			writeToSeries();
             saveInfoToDB(db);
