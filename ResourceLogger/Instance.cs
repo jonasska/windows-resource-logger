@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
+using SQLite;
 
 namespace ResourceLogger
 {
@@ -20,6 +21,7 @@ namespace ResourceLogger
 		protected TimeSpan currentSpan;
 		protected string filepath;
 		protected string filepath2;
+        protected string dbPath;
 		protected string datapointFileNumber;
 		protected int pointsInTheLatestFile;
 		protected List<string> datapointLines;
@@ -45,7 +47,8 @@ namespace ResourceLogger
 			isSelected = false;
 			pointsInTheLatestFile = 0;
 			datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-		}
+            dbPath = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
+        }
 
 		public void SetSeriesVisible(bool setter)
 		{
@@ -757,8 +760,9 @@ namespace ResourceLogger
 		public TimeSpan totalCpuSpan { get; private set; } // cpu time 
 		public TimeSpan totalSpan { get; private set; } // total time 
 		public TimeSpan currentCpuSpan { get; private set; }
+        public CPUDatapoint currentDatapoint { get; private set; }
 
-		public CpuInstance(string name)
+        public CpuInstance(string name)
 		{
 			instanceName = name;
 			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
@@ -770,7 +774,12 @@ namespace ResourceLogger
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
-		}
+
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.CreateTable<CPUDatapoint>();
+            }
+        }
 
 		private void writeToSeries()
 		{
@@ -787,9 +796,13 @@ namespace ResourceLogger
 			totalSpan = totalSpan.Add(span);
 			currentCpuSpan = currentcpuSpan;
 			currentSpan = span;
-			saveInfoToFile();
+
+            currentDatapoint = new CPUDatapoint(DateTime.Now, currentCpuSpan, currentSpan);
+
+            saveInfoToFile();
 			writeToSeries();
-		}
+            saveInfoToDB();
+        }
 
 		private void saveInfoToFile()
 		{
@@ -812,6 +825,14 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
+
+        private void saveInfoToDB()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.Insert(currentDatapoint);
+            }
+        }
 
 		private void readInfoFromFile()
 		{
@@ -846,9 +867,11 @@ namespace ResourceLogger
 		{
 			historySeries[0].Points.Clear();
 
-			readRelevantDatapoints(start, width, pointWidth);
+			//readRelevantDatapoints(start, width, pointWidth);
+            getRelevantDatapoints(start, width, pointWidth);
 
-			string historySummary = "";
+
+            string historySummary = "";
 			int count = 0;
 			double total = 0;
 
@@ -928,5 +951,17 @@ namespace ResourceLogger
 				datapoints.Add(datapoint);
 			}
 		}
+
+        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                datapoints.Clear();
+                //var datapoints = db.Query<CPUDatapoint>("SELECT * FROM CPUDatapoint WHERE time...");
+                DateTime end = start + width;
+                var query = db.Table<CPUDatapoint>().Where(d => d.time >= start && d.time <=end).ToList<CPUDatapoint>();
+                datapoints.AddRange(query);
+            }
+        }
 	}
 }

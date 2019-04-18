@@ -6,22 +6,27 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SQLite;
 
 namespace ResourceLogger
 {
 	public abstract class Datapoint
 	{
-		public DateTime time;
-		public TimeSpan span;
+        [PrimaryKey, AutoIncrement]
+        public int Id { get; set; }
+        public DateTime time { get; set; }
+        public TimeSpan span { get; set; }
+        [Indexed]
+        public string instanceName { get; set; }
 
-		//public abstract T aggregateDatapoints(List<T> points);
-	}
+        //public abstract T aggregateDatapoints(List<T> points);
+    }
 
 	public class MemoryDatapoint : Datapoint
 	{
-		public int mem;
+		public int mem { get; set; }
 
-		public MemoryDatapoint(string point)
+        public MemoryDatapoint(string point)
 		{
 			var data = point.Split(',');
 			time = new DateTime(long.Parse(data[0]) * 10000);
@@ -38,10 +43,10 @@ namespace ResourceLogger
 
 	public class DiskDatapoint : Datapoint
 	{
-		public double read;
-		public double write;
+		public double read { get; set; }
+        public double write { get; set; }
 
-		public DiskDatapoint(string point)
+        public DiskDatapoint(string point)
 		{
 			var data = point.Split(',');
 			time = new DateTime(long.Parse(data[0]) * 10000);
@@ -62,10 +67,10 @@ namespace ResourceLogger
 
 	public class NetworkDatapoint : Datapoint
 	{
-		public double read;
-		public double write;
+		public double read { get; set; }
+        public double write { get; set; }
 
-		public NetworkDatapoint(string point)
+        public NetworkDatapoint(string point)
 		{
 			var data = point.Split(',');
 			time = new DateTime(long.Parse(data[0]) * 10000);
@@ -85,10 +90,10 @@ namespace ResourceLogger
 
 	public class CPUDatapoint : Datapoint
 	{
-		public TimeSpan cpuSpan;
-		public double usage;
+		public TimeSpan cpuSpan { get; set; }
+        public double usage { get; set; }
 
-		public CPUDatapoint(string point)
+        public CPUDatapoint(string point)
 		{
 			var data = point.Split(',');
 			time = new DateTime(long.Parse(data[0]) * 10000);
@@ -96,8 +101,19 @@ namespace ResourceLogger
 			span = new TimeSpan(long.Parse(data[2]) * 10000);
 			usage = cpuSpan.TotalSeconds / span.TotalSeconds * 100.0;
 		}
+        public CPUDatapoint(DateTime t, TimeSpan cpuS, TimeSpan s)
+        {
+            time = t;
+            cpuSpan = cpuS;
+            span = s;
+            usage = cpuSpan.TotalSeconds / span.TotalSeconds * 100.0;
+        }
+        public CPUDatapoint()
+        {
+        }
 
-		public void addDatapoint(string point)
+
+        public void addDatapoint(string point)
 		{
 			CPUDatapoint p = new CPUDatapoint(point);
 			cpuSpan += p.cpuSpan;
