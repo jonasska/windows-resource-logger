@@ -149,8 +149,9 @@ namespace ResourceLogger
 		private PerformanceCounter memCounter;
 		private int totalMemory;
 		private double currentMemUsage;
+        public MemoryDatapoint currentDatapoint { get; private set; }
 
-		public MemoryInstance(string name)
+        public MemoryInstance(string name)
 		{
 			instanceName = name;
 			memCounter = new PerformanceCounter("Memory", "Available MBytes");
@@ -163,7 +164,13 @@ namespace ResourceLogger
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
-		}
+
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.CreateTable<MemoryDatapoint>();
+            }
+        }
 
 		static ulong GetTotalMemoryInMBytes()
 		{
@@ -174,8 +181,12 @@ namespace ResourceLogger
 		{
 			currentMemUsage = totalMemory - memCounter.NextValue();
 			currentSpan = span;
-			saveInfoToFile();
+
+            currentDatapoint = new MemoryDatapoint(DateTime.Now, currentSpan, (int)currentMemUsage);
+
+            saveInfoToFile();
 			writeToSeries();
+            saveInfoToDB();
 		}
 
 		private void saveInfoToFile()
@@ -196,8 +207,15 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
+        private void saveInfoToDB()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.Insert(currentDatapoint);
+            }
+        }
 
-		private void writeToSeries()
+        private void writeToSeries()
 		{
 			liveSeries[0].Points.AddXY(DateTime.Now, currentMemUsage);
 		}
@@ -219,7 +237,8 @@ namespace ResourceLogger
 		{
 			historySeries[0].Points.Clear();
 
-			readRelevantDatapoints(start, width, pointWidth);
+			//readRelevantDatapoints(start, width, pointWidth);
+            getRelevantDatapoints(start,width,pointWidth);
 
 			string historySummary = "";
 			int count = 0;
@@ -297,7 +316,19 @@ namespace ResourceLogger
 				datapoints.Add(datapoint);
 			}
 		}
-	}
+
+        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                datapoints.Clear();
+                DateTime end = start + width;
+                var query = db.Table<MemoryDatapoint>().Where(d => d.time >= start && d.time <= end).ToList<MemoryDatapoint>();
+                datapoints.AddRange(query);
+            }
+        }
+
+    }
 
 	public class DiskInstance : AnInstance
 	{
@@ -309,9 +340,10 @@ namespace ResourceLogger
 		public double totalDataRead;
 		double currentDataWrite;
 		double currentDataRead;
+        public DiskDatapoint currentDatapoint { get; private set; }
 
 
-		public DiskInstance(string name)
+        public DiskInstance(string name)
 		{
 			instanceName = name + "disk usage";
 			readCounter = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", name);
@@ -330,7 +362,13 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
-		}
+
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.CreateTable<DiskDatapoint>();
+            }
+        }
 
 		private void saveInfoToFile()
 		{
@@ -350,8 +388,15 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
+        private void saveInfoToDB()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.Insert(currentDatapoint);
+            }
+        }
 
-		private void writeToSeries()
+        private void writeToSeries()
 		{
 			liveSeries[0].Points.AddXY(DateTime.Now, currentWriteSpeed / 1024 / 1024);
 			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024);
@@ -366,8 +411,12 @@ namespace ResourceLogger
 			totalDataWritten += currentDataWrite;
 			totalDataRead += currentDataRead;
 			currentSpan = span;
+
+            currentDatapoint = new DiskDatapoint(DateTime.Now, currentSpan, currentDataRead, currentDataWrite, instanceName);
+
 			saveInfoToFile();
 			writeToSeries();
+            saveInfoToDB();
 		}
 
 		private void readInfoFromFile()
@@ -438,9 +487,11 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			readRelevantDatapoints(start, width, pointWidth);
+			//readRelevantDatapoints(start, width, pointWidth);
+            getRelevantDatapoints(start, width, pointWidth);
 
-			if (datapoints.Count > 0)
+
+            if (datapoints.Count > 0)
 			{
 				DiskDatapoint datapoint = (DiskDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
@@ -525,7 +576,17 @@ namespace ResourceLogger
 				datapoints.Add(datapoint);
 			}
 		}
-	};
+        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                datapoints.Clear();
+                DateTime end = start + width;
+                var query = db.Table<DiskDatapoint>().Where(d => d.time >= start && d.time <= end && d.instanceName == instanceName).ToList<DiskDatapoint>();
+                datapoints.AddRange(query);
+            }
+        }
+    };
 
 	public class NetworkInstance : AnInstance
 	{
@@ -537,8 +598,9 @@ namespace ResourceLogger
 		public double totalDataRead;
 		double currentDataWrite;
 		double currentDataRead;
+        public NetworkDatapoint currentDatapoint { get; private set; }
 
-		public NetworkInstance(string name)
+        public NetworkInstance(string name)
 		{
 			instanceName = name + "network usage";
 			readCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", name);
@@ -556,7 +618,14 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
-		}
+
+
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.CreateTable<NetworkDatapoint>();
+            }
+        }
 
 		private void saveInfoToFile()
 		{
@@ -576,8 +645,15 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
+        private void saveInfoToDB()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.Insert(currentDatapoint);
+            }
+        }
 
-		private void writeToSeries()
+        private void writeToSeries()
 		{
 			liveSeries[0].Points.AddXY(DateTime.Now, currentWriteSpeed / 1024 / 1024 * 8);
 			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024 * 8);
@@ -592,9 +668,14 @@ namespace ResourceLogger
 			totalDataWritten += currentDataWrite;
 			totalDataRead += currentDataRead;
 			currentSpan = span;
+
+            currentDatapoint = new NetworkDatapoint(DateTime.Now,currentSpan,currentDataRead,currentDataWrite,instanceName);
+
 			saveInfoToFile();
 			writeToSeries();
-		}
+            saveInfoToDB();
+
+        }
 
 		private void readInfoFromFile()
 		{
@@ -664,9 +745,11 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			readRelevantDatapoints(start, width, pointWidth);
+			//readRelevantDatapoints(start, width, pointWidth);
+            getRelevantDatapoints(start, width, pointWidth);
 
-			if (datapoints.Count > 0)
+
+            if (datapoints.Count > 0)
 			{
 				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
@@ -751,7 +834,17 @@ namespace ResourceLogger
 				datapoints.Add(datapoint);
 			}
 		}
-	};
+        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                datapoints.Clear();
+                DateTime end = start + width;
+                var query = db.Table<NetworkDatapoint>().Where(d => d.time >= start && d.time <= end && d.instanceName == instanceName).ToList<NetworkDatapoint>();
+                datapoints.AddRange(query);
+            }
+        }
+    };
 
 	public class CpuInstance : AnInstance
 	{
@@ -775,6 +868,8 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 
+
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<CPUDatapoint>();

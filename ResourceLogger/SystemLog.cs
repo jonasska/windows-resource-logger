@@ -24,7 +24,7 @@ namespace ResourceLogger
 		private bool stopThreads = false;
 
 
-		public SystemLog()
+        public SystemLog()
 		{
 			instances = new List<AnInstance>();
 			instances.Add(new CpuInstance("CPU"));
@@ -50,7 +50,9 @@ namespace ResourceLogger
 				instances.Add(new NetworkInstance(instance));
 			}
 
-		}
+
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+        }
 
 		public void nextValues()
 		{

@@ -16,7 +16,7 @@ namespace ResourceLogger
         public int Id { get; set; }
         public DateTime time { get; set; }
         public TimeSpan span { get; set; }
-        [Indexed]
+        //[Indexed]
         public string instanceName { get; set; }
 
         //public abstract T aggregateDatapoints(List<T> points);
@@ -33,6 +33,17 @@ namespace ResourceLogger
 			mem = int.Parse(data[1]);
 			span = new TimeSpan(long.Parse(data[2]) * 10000);
 		}
+
+        public MemoryDatapoint(DateTime t, TimeSpan s, int m)
+        {
+            time = t;
+            span = s;
+            mem = m;
+        }
+        public MemoryDatapoint()
+        {
+            
+        }
 
 		public void addDatapoint(string point)
 		{
@@ -54,6 +65,19 @@ namespace ResourceLogger
 			write = double.Parse(data[2]);
 			span = new TimeSpan(long.Parse(data[3]) * 10000);
 		}
+
+        public DiskDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
+        {
+            time = t;
+            span = s;
+            read = r;
+            write = w;
+            instanceName = name;
+        }
+        public DiskDatapoint()
+        {
+            
+        }
 
 		public void addDatapoint(string point)
 		{
@@ -78,6 +102,18 @@ namespace ResourceLogger
 			write = double.Parse(data[2]);
 			span = new TimeSpan(long.Parse(data[3]) * 10000);
 		}
+
+        public NetworkDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
+        {
+            time = t;
+            span = s;
+            read = r;
+            write = w;
+            instanceName = name;
+        }
+        public NetworkDatapoint()
+        {
+        }
 
 		public void addDatapoint(string point)
 		{
