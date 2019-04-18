@@ -21,14 +21,8 @@ namespace ResourceLogger
         protected List<Series> liveSeries;
 		protected List<Series> historySeries;
 		protected TimeSpan currentSpan;
-		protected string filepath;
-		protected string filepath2;
 
-		protected string datapointFileNumber;
-		protected int pointsInTheLatestFile;
-		protected List<string> datapointLines;
 		protected List<Datapoint> datapoints;
-
 
 		public abstract void nextValues(TimeSpan span, SQLiteConnection db);
 
@@ -38,18 +32,12 @@ namespace ResourceLogger
 
 		public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
 
-		protected abstract void parseDatapoints(TimeSpan width, TimeSpan pointWidth);
-
 		protected AnInstance()
 		{
 			liveSeries = new List<Series>();
 			historySeries = new List<Series>();
-			datapointLines = new List<string>();
 			datapoints = new List<Datapoint>();
-			isSelected = false;
-			pointsInTheLatestFile = 0;
-			datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-            
+			isSelected = false;  
         }
 
 		public void SetSeriesVisible(bool setter)
@@ -73,68 +61,8 @@ namespace ResourceLogger
 			return historySeries;
 		}
 
-		protected void readRelevantDatapoints(DateTime position, TimeSpan width, TimeSpan pointWidth)
-		{
-			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
-			{
-				if (System.IO.Directory.Exists(filepath2))
-				{
-					datapointLines.Clear();
-					var paths = System.IO.Directory.GetFiles(filepath2);
+        public abstract DateTime GetFirstDatapointDateTime();
 
-
-					for (int i = 0; i <paths.Length; i++)
-					{
-						var thisFileParts = paths[i].Split(new char[] { '.', '/' });
-						DateTime thisFilePosition = new DateTime(long.Parse(thisFileParts[thisFileParts.Length - 2]) * 10000);
-						if (thisFilePosition > position + width)
-						{
-							continue;
-						}
-						if (i+1 < paths.Length) //next exist
-						{
-							var nextFileParts = paths[i+1].Split(new char[] { '.', '/' });
-							DateTime nextFilePosition = new DateTime(long.Parse(nextFileParts[nextFileParts.Length - 2]) * 10000);
-							if (nextFilePosition < position)
-							{
-								continue;
-							}
-						}
-						System.IO.StreamReader reader = new System.IO.StreamReader(paths[i]);
-						while (!reader.EndOfStream)
-						{
-							string line = reader.ReadLine();
-							var data = line.Split(',');
-							long ticks = long.Parse(data[0]) * 10000;
-							DateTime linePosition = new DateTime(ticks);
-							if (linePosition < position || linePosition > position + width)
-							{
-								continue;
-							}
-							datapointLines.Add(line);
-						}
-						reader.Close();
-					}
-				}
-			}
-			parseDatapoints(width, pointWidth);
-		}
-
-		public DateTime GetFirstDatapointDateTime()
-		{
-			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
-			{
-				if (System.IO.Directory.Exists(filepath2))
-				{
-					var paths = System.IO.Directory.GetFiles(filepath2);
-					var parts = paths[0].Split(new char[] { '.', '/' });
-					DateTime filePosition = new DateTime(long.Parse(parts[parts.Length - 2]) * 10000);
-					return filePosition;
-				}
-			}
-
-			return DateTime.Now;
-		}
 
 		public int getnDatapoints()
 		{
@@ -159,11 +87,6 @@ namespace ResourceLogger
 			memCounter = new PerformanceCounter("Memory", "Available MBytes");
 			totalMemory = (int)GetTotalMemoryInMBytes();
 
-			filepath = Properties.Settings.Default.SystemDirectory + "MemoryTotal.txt";//  ???
-			filepath2 = Properties.Settings.Default.SystemDirectory + "MemoryDatapoints/";//+ "MemoryDatapoints.txt";
-
-			//readInfoFromFile();  //????
-
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 
@@ -185,29 +108,10 @@ namespace ResourceLogger
 
             currentDatapoint = new MemoryDatapoint(DateTime.Now, currentSpan, (int)currentMemUsage);
 
-            saveInfoToFile();
 			writeToSeries();
             saveInfoToDB(db);
 		}
 
-		private void saveInfoToFile()
-		{
-			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
-			System.IO.Directory.CreateDirectory(filepath2);
-			//System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
-			//writer.WriteLine(); // total mem????
-			//writer.Close();
-
-			string line = (DateTime.Now.Ticks / 10000) + "," + currentMemUsage + "," + (currentSpan.Ticks / 10000);
-			line += Environment.NewLine;
-			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
-			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
-			{
-				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-				pointsInTheLatestFile = 0;
-			}
-		}
         private void saveInfoToDB(SQLiteConnection db)
         {
                 db.Insert(currentDatapoint);
@@ -235,7 +139,6 @@ namespace ResourceLogger
 		{
 			historySeries[0].Points.Clear();
 
-			//readRelevantDatapoints(start, width, pointWidth);
             getRelevantDatapoints(start,width,pointWidth);
 
 			string historySummary = "";
@@ -300,20 +203,14 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
-		{
-			datapoints.Clear();
-
-			for (int i = 0; i< datapointLines.Count; i++)
-			{
-				var datapoint = new MemoryDatapoint(datapointLines[i]);
-				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
-				{
-					datapoint.addDatapoint(datapointLines[i]);
-				}
-				datapoints.Add(datapoint);
-			}
-		}
+        public override DateTime GetFirstDatapointDateTime()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                var firstPoint = db.Get<MemoryDatapoint>(1);
+                return firstPoint.time;
+            }
+        }
 
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
@@ -347,14 +244,8 @@ namespace ResourceLogger
 			readCounter = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", name);
 			writeCounter = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", name);
 
-
 			totalDataWritten = 0;
 			totalDataRead = 0;
-
-			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + "Total.txt";
-			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + " datapoints/";
-
-			readInfoFromFile();
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
@@ -367,24 +258,6 @@ namespace ResourceLogger
             }
         }
 
-		private void saveInfoToFile()
-		{
-			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
-			System.IO.Directory.CreateDirectory(filepath2);
-			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
-			writer.WriteLine(totalDataRead);
-			writer.WriteLine(totalDataWritten);
-			writer.Close();
-			string line = (DateTime.Now.Ticks / 10000) + "," + currentDataRead.ToString("0.000") + "," + currentDataWrite.ToString("0.000") + "," + (currentSpan.Ticks / 10000);
-			line += Environment.NewLine;
-			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
-			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
-			{
-				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-				pointsInTheLatestFile = 0;
-			}
-		}
         private void saveInfoToDB(SQLiteConnection db)
         {
                 db.Insert(currentDatapoint);
@@ -408,23 +281,8 @@ namespace ResourceLogger
 
             currentDatapoint = new DiskDatapoint(DateTime.Now, currentSpan, currentDataRead, currentDataWrite, instanceName);
 
-			saveInfoToFile();
 			writeToSeries();
             saveInfoToDB(db);
-		}
-
-		private void readInfoFromFile()
-		{
-			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
-			{
-				if (System.IO.File.Exists(filepath))
-				{
-					System.IO.StreamReader reader = new System.IO.StreamReader(filepath);
-					totalDataRead = double.Parse(reader.ReadLine());
-					totalDataWritten = double.Parse(reader.ReadLine());
-					reader.Close();
-				}
-			}
 		}
 
 		public override AxisRange GetLiveYAxisRange()
@@ -481,9 +339,7 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			//readRelevantDatapoints(start, width, pointWidth);
             getRelevantDatapoints(start, width, pointWidth);
-
 
             if (datapoints.Count > 0)
 			{
@@ -555,21 +411,14 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-
-		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
-		{
-			datapoints.Clear();
-
-			for (int i = 0; i < datapointLines.Count; i++)
-			{
-				var datapoint = new DiskDatapoint(datapointLines[i]);
-				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
-				{
-					datapoint.addDatapoint(datapointLines[i]);
-				}
-				datapoints.Add(datapoint);
-			}
-		}
+        public override DateTime GetFirstDatapointDateTime()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                var firstPoint = db.Get<DiskDatapoint>(1);
+                return firstPoint.time;
+            }
+        }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
             using (var db = new SQLiteConnection(dbPath))
@@ -603,11 +452,6 @@ namespace ResourceLogger
 			totalDataWritten = 0;
 			totalDataRead = 0;
 
-			filepath = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + "networkTotal.txt";
-			filepath2 = Properties.Settings.Default.SystemDirectory + instanceName.Replace(':', ' ').Replace('*', ' ') + " networkDatapoints/";
-
-			readInfoFromFile();
-
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
@@ -620,24 +464,6 @@ namespace ResourceLogger
             }
         }
 
-		private void saveInfoToFile()
-		{
-			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
-			System.IO.Directory.CreateDirectory(filepath2);
-			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
-			writer.WriteLine(totalDataRead);
-			writer.WriteLine(totalDataWritten);
-			writer.Close();
-			string line = (DateTime.Now.Ticks / 10000) + "," + currentDataRead.ToString("0.000") + "," + currentDataWrite.ToString("0.000") + "," + (currentSpan.Ticks / 10000);
-			line += Environment.NewLine;
-			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
-			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
-			{
-				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-				pointsInTheLatestFile = 0;
-			}
-		}
         private void saveInfoToDB(SQLiteConnection db)
         {
                 db.Insert(currentDatapoint);
@@ -661,25 +487,10 @@ namespace ResourceLogger
 
             currentDatapoint = new NetworkDatapoint(DateTime.Now,currentSpan,currentDataRead,currentDataWrite,instanceName);
 
-			saveInfoToFile();
 			writeToSeries();
             saveInfoToDB(db);
 
         }
-
-		private void readInfoFromFile()
-		{
-			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
-			{
-				if (System.IO.File.Exists(filepath))
-				{
-					System.IO.StreamReader reader = new System.IO.StreamReader(filepath);
-					totalDataRead = double.Parse(reader.ReadLine());
-					totalDataWritten = double.Parse(reader.ReadLine());
-					reader.Close();
-				}
-			}
-		}
 
 		public override AxisRange GetLiveYAxisRange()
 		{
@@ -735,9 +546,7 @@ namespace ResourceLogger
 			double totalRead = 0;
 			double totalWrite = 0;
 
-			//readRelevantDatapoints(start, width, pointWidth);
             getRelevantDatapoints(start, width, pointWidth);
-
 
             if (datapoints.Count > 0)
 			{
@@ -809,21 +618,14 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-
-		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
-		{
-			datapoints.Clear();
-
-			for (int i = 0; i < datapointLines.Count; i++)
-			{
-				var datapoint = new NetworkDatapoint(datapointLines[i]);
-				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
-				{
-					datapoint.addDatapoint(datapointLines[i]);
-				}
-				datapoints.Add(datapoint);
-			}
-		}
+        public override DateTime GetFirstDatapointDateTime()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                var firstPoint = db.Get<NetworkDatapoint>(1);
+                return firstPoint.time;
+            }
+        }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
             using (var db = new SQLiteConnection(dbPath))
@@ -851,14 +653,8 @@ namespace ResourceLogger
 			instanceName = name;
 			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
 
-			filepath = Properties.Settings.Default.SystemDirectory + "CPUTotal.txt";
-			filepath2 = Properties.Settings.Default.SystemDirectory + "CPUDatapoints/";
-
-			readInfoFromFile();
-
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
-
 
             using (var db = new SQLiteConnection(dbPath))
             {
@@ -884,53 +680,16 @@ namespace ResourceLogger
 
             currentDatapoint = new CPUDatapoint(DateTime.Now, currentCpuSpan, currentSpan);
 
-            saveInfoToFile();
 			writeToSeries();
             saveInfoToDB(db);
         }
 
-		private void saveInfoToFile()
-		{
-			System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
-			System.IO.Directory.CreateDirectory(filepath2);
-			System.IO.StreamWriter writer = new System.IO.StreamWriter(filepath);
-			string line = totalCpuSpan.Ticks + "," + totalCpuSpan;
-			writer.WriteLine(line);
-			line = totalSpan.Ticks + "," + totalSpan;
-			writer.WriteLine(line);
-			writer.Close();
-
-			line = (DateTime.Now.Ticks / 10000) + "," + (currentCpuSpan.Ticks / 10000) + "," + (currentSpan.Ticks / 10000);
-			line += Environment.NewLine;
-			File.AppendAllText(filepath2 + datapointFileNumber + ".txt", line);
-			pointsInTheLatestFile++;
-			if (pointsInTheLatestFile > Properties.Settings.Default.DatapointsInOneFile)
-			{
-				datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-				pointsInTheLatestFile = 0;
-			}
-		}
 
         private void saveInfoToDB(SQLiteConnection db)
         {
                 db.Insert(currentDatapoint);
         }
 
-		private void readInfoFromFile()
-		{
-			if (System.IO.Directory.Exists(Properties.Settings.Default.SystemDirectory))
-			{
-				if (System.IO.File.Exists(filepath))
-				{
-					System.IO.StreamReader reader = new System.IO.StreamReader(filepath);
-					string[] line = reader.ReadLine().Split(',');
-					totalCpuSpan = new TimeSpan(long.Parse(line[0]));
-					line = reader.ReadLine().Split(',');
-					totalSpan = new TimeSpan(long.Parse(line[0]));
-					reader.Close();
-				}
-			}
-		}
 
 		public override AxisRange GetLiveYAxisRange()
 		{
@@ -949,9 +708,7 @@ namespace ResourceLogger
 		{
 			historySeries[0].Points.Clear();
 
-			//readRelevantDatapoints(start, width, pointWidth);
             getRelevantDatapoints(start, width, pointWidth);
-
 
             string historySummary = "";
 			int count = 0;
@@ -960,7 +717,6 @@ namespace ResourceLogger
 
 			if (datapoints.Count > 0)
 			{
-				//CPUDatapoint datapoint = new CPUDatapoint(datapointLines[0]);
 				CPUDatapoint datapoint = (CPUDatapoint)datapoints[0];
 				TimeSpan spanBetweenPoints = datapoint.time - start;
 				if (spanBetweenPoints > datapoint.span + datapoint.span)
@@ -1019,22 +775,14 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-
-		protected override void parseDatapoints(TimeSpan width, TimeSpan pointWidth)
-		{
-			datapoints.Clear();
-
-			for (int i = 0; i < datapointLines.Count; i++)
-			{
-				var datapoint = new CPUDatapoint(datapointLines[i]);
-				for (; i < datapointLines.Count && datapoint.span < pointWidth; i++)
-				{
-					datapoint.addDatapoint(datapointLines[i]);
-				}
-				datapoints.Add(datapoint);
-			}
-		}
-
+        public override DateTime GetFirstDatapointDateTime()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                var firstPoint = db.Get<CPUDatapoint>(1);
+                return firstPoint.time;
+            }
+        }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
             using (var db = new SQLiteConnection(dbPath))
