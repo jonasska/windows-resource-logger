@@ -19,7 +19,8 @@ namespace ResourceLogger
 
 		public Logger()
 		{
-			systemLog = new SystemLog();
+            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+            systemLog = new SystemLog();
 		}
 
 

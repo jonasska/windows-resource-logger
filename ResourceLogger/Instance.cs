@@ -16,19 +16,21 @@ namespace ResourceLogger
 	{
 		public string instanceName;
 		public bool isSelected;
-		protected List<Series> liveSeries;
+        public string dbPath { get; set; } = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
+
+        protected List<Series> liveSeries;
 		protected List<Series> historySeries;
 		protected TimeSpan currentSpan;
 		protected string filepath;
 		protected string filepath2;
-        protected string dbPath;
+
 		protected string datapointFileNumber;
 		protected int pointsInTheLatestFile;
 		protected List<string> datapointLines;
 		protected List<Datapoint> datapoints;
 
 
-		public abstract void nextValues(TimeSpan span);
+		public abstract void nextValues(TimeSpan span, SQLiteConnection db);
 
 		public abstract AxisRange GetLiveYAxisRange();
 
@@ -47,7 +49,7 @@ namespace ResourceLogger
 			isSelected = false;
 			pointsInTheLatestFile = 0;
 			datapointFileNumber = (DateTime.Now.Ticks / 10000).ToString();
-            dbPath = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
+            
         }
 
 		public void SetSeriesVisible(bool setter)
@@ -165,7 +167,6 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 
-            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<MemoryDatapoint>();
@@ -177,7 +178,7 @@ namespace ResourceLogger
 			return new Microsoft.VisualBasic.Devices.ComputerInfo().TotalPhysicalMemory / 1024 / 1024;
 		}
 
-		public override void nextValues(TimeSpan span)
+		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
 			currentMemUsage = totalMemory - memCounter.NextValue();
 			currentSpan = span;
@@ -186,7 +187,7 @@ namespace ResourceLogger
 
             saveInfoToFile();
 			writeToSeries();
-            saveInfoToDB();
+            saveInfoToDB(db);
 		}
 
 		private void saveInfoToFile()
@@ -207,12 +208,9 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
-        private void saveInfoToDB()
+        private void saveInfoToDB(SQLiteConnection db)
         {
-            using (var db = new SQLiteConnection(dbPath))
-            {
                 db.Insert(currentDatapoint);
-            }
         }
 
         private void writeToSeries()
@@ -290,10 +288,10 @@ namespace ResourceLogger
 				}
 			}
 
-			if (datapointLines.Count > 1) // position exists
+			if (datapoints.Count > 1) // position exists
 			{
-				DateTime firstTime = new DateTime(long.Parse(datapointLines[0].Split(',')[0]) * 10000);
-				DateTime lastTime = new DateTime(long.Parse(datapointLines[datapointLines.Count - 1].Split(',')[0]) * 10000);
+                DateTime firstTime = datapoints[0].time;
+                DateTime lastTime = datapoints[datapoints.Count - 1].time;
 				TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 								 "Average Memory consumption: " + (total / count).ToString("#.000") + "MB";// + Environment.NewLine;
@@ -363,7 +361,6 @@ namespace ResourceLogger
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
 
-            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<DiskDatapoint>();
@@ -388,12 +385,9 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
-        private void saveInfoToDB()
+        private void saveInfoToDB(SQLiteConnection db)
         {
-            using (var db = new SQLiteConnection(dbPath))
-            {
                 db.Insert(currentDatapoint);
-            }
         }
 
         private void writeToSeries()
@@ -402,7 +396,7 @@ namespace ResourceLogger
 			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024);
 		}
 
-		public override void nextValues(TimeSpan span)
+		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
 			currentWriteSpeed = writeCounter.NextValue();
 			currentReadSpeed = readCounter.NextValue();
@@ -416,7 +410,7 @@ namespace ResourceLogger
 
 			saveInfoToFile();
 			writeToSeries();
-            saveInfoToDB();
+            saveInfoToDB(db);
 		}
 
 		private void readInfoFromFile()
@@ -547,11 +541,11 @@ namespace ResourceLogger
 				}
 			}
 
-			if (datapointLines.Count > 1) // position exists
+			if (datapoints.Count > 1) // position exists
 			{
-				DateTime firstTime = new DateTime(long.Parse(datapointLines[0].Split(',')[0]) * 10000);
-				DateTime lastTime = new DateTime(long.Parse(datapointLines[datapointLines.Count - 1].Split(',')[0]) * 10000);
-				TimeSpan selectionSpan = lastTime - firstTime;
+                DateTime firstTime = datapoints[0].time;
+                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 				                 "Total disk read: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
 				                 "Total disk write: " + (totalWrite / 1024).ToString("#.000") + "GB" + Environment.NewLine +
@@ -620,7 +614,6 @@ namespace ResourceLogger
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
 
 
-            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<NetworkDatapoint>();
@@ -645,12 +638,9 @@ namespace ResourceLogger
 				pointsInTheLatestFile = 0;
 			}
 		}
-        private void saveInfoToDB()
+        private void saveInfoToDB(SQLiteConnection db)
         {
-            using (var db = new SQLiteConnection(dbPath))
-            {
                 db.Insert(currentDatapoint);
-            }
         }
 
         private void writeToSeries()
@@ -659,7 +649,7 @@ namespace ResourceLogger
 			liveSeries[1].Points.AddXY(DateTime.Now, currentReadSpeed / 1024 / 1024 * 8);
 		}
 
-		public override void nextValues(TimeSpan span)
+		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
 			currentWriteSpeed = writeCounter.NextValue();
 			currentReadSpeed = readCounter.NextValue();
@@ -673,7 +663,7 @@ namespace ResourceLogger
 
 			saveInfoToFile();
 			writeToSeries();
-            saveInfoToDB();
+            saveInfoToDB(db);
 
         }
 
@@ -792,7 +782,7 @@ namespace ResourceLogger
 				count++;//?? eh
 			}
 
-			if (datapointLines.Count > 0)
+			if (datapoints.Count > 0)
 			{
 				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[datapoints.Count-1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
@@ -805,11 +795,11 @@ namespace ResourceLogger
 				}
 			}
 
-			if (datapointLines.Count > 1) // position exists
+			if (datapoints.Count > 1) // position exists
 			{
-				DateTime firstTime = new DateTime(long.Parse(datapointLines[0].Split(',')[0]) * 10000);
-				DateTime lastTime = new DateTime(long.Parse(datapointLines[datapointLines.Count - 1].Split(',')[0]) * 10000);
-				TimeSpan selectionSpan = lastTime - firstTime;
+                DateTime firstTime = datapoints[0].time;
+                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 				                 "Total network received: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
 				                 "Total network sent: " + (totalWrite / 1024).ToString("#.000") + "GB" + Environment.NewLine +
@@ -855,6 +845,7 @@ namespace ResourceLogger
 		public TimeSpan currentCpuSpan { get; private set; }
         public CPUDatapoint currentDatapoint { get; private set; }
 
+
         public CpuInstance(string name)
 		{
 			instanceName = name;
@@ -869,7 +860,6 @@ namespace ResourceLogger
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 
 
-            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<CPUDatapoint>();
@@ -882,7 +872,7 @@ namespace ResourceLogger
 
 		}
 
-		public override void nextValues(TimeSpan span)
+		public override void nextValues(TimeSpan span, SQLiteConnection db)
 		{
 			currentCpuUsage = totalCpuTimeCount.NextValue();
 			long cpuElapsed = (long)(span.Ticks * currentCpuUsage / 100);
@@ -896,7 +886,7 @@ namespace ResourceLogger
 
             saveInfoToFile();
 			writeToSeries();
-            saveInfoToDB();
+            saveInfoToDB(db);
         }
 
 		private void saveInfoToFile()
@@ -921,12 +911,9 @@ namespace ResourceLogger
 			}
 		}
 
-        private void saveInfoToDB()
+        private void saveInfoToDB(SQLiteConnection db)
         {
-            using (var db = new SQLiteConnection(dbPath))
-            {
                 db.Insert(currentDatapoint);
-            }
         }
 
 		private void readInfoFromFile()
@@ -971,7 +958,7 @@ namespace ResourceLogger
 			double total = 0;
 
 
-			if (datapointLines.Count > 0)
+			if (datapoints.Count > 0)
 			{
 				//CPUDatapoint datapoint = new CPUDatapoint(datapointLines[0]);
 				CPUDatapoint datapoint = (CPUDatapoint)datapoints[0];
@@ -1009,7 +996,7 @@ namespace ResourceLogger
 				count++;
 			}
 
-			if (datapointLines.Count > 0)
+			if (datapoints.Count > 0)
 			{
 				CPUDatapoint datapoint = (CPUDatapoint)datapoints[datapoints.Count-1];
 				TimeSpan spanBetweenPoints = start + width - datapoint.time;
@@ -1020,11 +1007,12 @@ namespace ResourceLogger
 				}
 			}
 
-			if (datapointLines.Count > 1) // position exists
-			{
-				DateTime firstTime = new DateTime(long.Parse(datapointLines[0].Split(',')[0]) * 10000);
-				DateTime lastTime = new DateTime(long.Parse(datapointLines[datapointLines.Count - 1].Split(',')[0]) * 10000);
-				TimeSpan selectionSpan = lastTime - firstTime;
+			if (datapoints.Count > 1) // position exists
+            {
+                DateTime firstTime = datapoints[0].time;
+                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+
+                TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 				                 "Average CPU usage: " + (total / count).ToString("#.000") + "%";// + Environment.NewLine;
 			}

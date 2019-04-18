@@ -11,6 +11,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms.DataVisualization.Charting;
 using ResourceLogger;
+using SQLite;
 
 namespace ResourceLogger
 {
@@ -23,10 +24,12 @@ namespace ResourceLogger
 		Thread nextValuesThread;
 		private bool stopThreads = false;
 
+        public string dbPath { get; set; } = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
+
 
         public SystemLog()
 		{
-			instances = new List<AnInstance>();
+            instances = new List<AnInstance>();
 			instances.Add(new CpuInstance("CPU"));
 			instances.Add(new MemoryInstance("Memory"));
 
@@ -50,18 +53,29 @@ namespace ResourceLogger
 				instances.Add(new NetworkInstance(instance));
 			}
 
+            foreach (var instance in instances)
+            {
+                instance.dbPath = dbPath;
+            }
 
-            System.IO.Directory.CreateDirectory(Properties.Settings.Default.SystemDirectory);
+            
         }
 
 		public void nextValues()
 		{
 			DateTime now = DateTime.Now;
 			TimeSpan span = now - t1;
-			foreach (var instance in instances)
-			{
-				instance.nextValues(span);
-			}
+
+            using (SQLiteConnection db = new SQLiteConnection(dbPath))
+            {
+                db.BeginTransaction();
+                foreach (var instance in instances)
+                {
+                    instance.nextValues(span, db);
+                }
+                db.Commit();
+            }
+
 			t1 = now;
 		}
 
