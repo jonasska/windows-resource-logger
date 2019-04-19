@@ -205,8 +205,13 @@ namespace ResourceLogger
         {
             using (var db = new SQLiteConnection(dbPath))
             {
-                var firstPoint = db.Get<MemoryDatapoint>(1);
-                return firstPoint.time;
+                if (db.Find<MemoryDatapoint>(1) != null)
+                {
+                    var firstPoint = db.Get<MemoryDatapoint>(1);
+                    return firstPoint.time;
+                }
+
+                return DateTime.Now;
             }
         }
 
@@ -401,8 +406,13 @@ namespace ResourceLogger
         {
             using (var db = new SQLiteConnection(dbPath))
             {
-                var firstPoint = db.Get<DiskDatapoint>(1);
-                return firstPoint.time;
+                if (db.Find<DiskDatapoint>(1) != null)
+                {
+                    var firstPoint = db.Get<DiskDatapoint>(1);
+                    return firstPoint.time;
+                }
+
+                return DateTime.Now;
             }
         }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
@@ -595,8 +605,13 @@ namespace ResourceLogger
         {
             using (var db = new SQLiteConnection(dbPath))
             {
-                var firstPoint = db.Get<NetworkDatapoint>(1);
-                return firstPoint.time;
+                if (db.Find<NetworkDatapoint>(1) != null)
+                {
+                    var firstPoint = db.Get<NetworkDatapoint>(1);
+                    return firstPoint.time;
+                }
+
+                return DateTime.Now;
             }
         }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
@@ -743,8 +758,13 @@ namespace ResourceLogger
         {
             using (var db = new SQLiteConnection(dbPath))
             {
-                var firstPoint = db.Get<CPUDatapoint>(1);
-                return firstPoint.time;
+                if (db.Find<CPUDatapoint>(1)!=null)
+                {
+                    var firstPoint = db.Get<CPUDatapoint>(1);
+                    return firstPoint.time;
+                }
+
+                return DateTime.Now;
             }
         }
         protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
