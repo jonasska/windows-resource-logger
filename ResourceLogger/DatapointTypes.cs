@@ -19,6 +19,11 @@ namespace ResourceLogger
         //[Indexed]
         public string instanceName { get; set; }
 
+        public Datapoint()
+        {
+            
+        }
+
         //public abstract T aggregateDatapoints(List<T> points);
     }
 

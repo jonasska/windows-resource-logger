@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms.DataVisualization.Charting;
@@ -12,87 +13,120 @@ using SQLite;
 
 namespace ResourceLogger
 {
-	public abstract class AnInstance
-	{
-		public string instanceName;
-		public bool isSelected;
+    public abstract class AnInstance
+    {
+        
+        public string instanceName;
+        public bool isSelected;
         public string dbPath { get; set; } = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
 
         protected List<Series> liveSeries;
-		protected List<Series> historySeries;
-		//protected TimeSpan currentSpan;
+        protected List<Series> historySeries;
 
-		protected List<Datapoint> datapoints;
+        public Datapoint currentDatapoint;
+        protected List<Datapoint> datapoints;
 
-		public abstract void nextValues(TimeSpan span, SQLiteConnection db);
-
-		public abstract AxisRange GetLiveYAxisRange();
-
-		public abstract AxisRange GetHistoryYAxisRange();
-
-		public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
-
-		protected AnInstance()
-		{
-			liveSeries = new List<Series>();
-			historySeries = new List<Series>();
-			datapoints = new List<Datapoint>();
-			isSelected = false;  
+        protected AnInstance()
+        {
+            liveSeries = new List<Series>();
+            historySeries = new List<Series>();
+            datapoints = new List<Datapoint>();
+            isSelected = false;
         }
 
-		public void SetSeriesVisible(bool setter)
-		{
-			foreach (var s in liveSeries)
-			{
-				s.Enabled = setter;
-			}
-			foreach (var s in historySeries)
-			{
-				s.Enabled = setter;
-			}
-		}
+        public abstract void nextValues(TimeSpan span, SQLiteConnection db);
 
-		public List<Series> GetLiveSeries()
-		{
-			return liveSeries;
-		}
-		public List<Series> GetHistorySeries()
-		{
-			return historySeries;
-		}
+        public abstract AxisRange GetLiveYAxisRange();
+        public abstract AxisRange GetHistoryYAxisRange();
+        public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
+
+        public void SetSeriesVisible(bool setter)
+        {
+            foreach (var s in liveSeries)
+            {
+                s.Enabled = setter;
+            }
+            foreach (var s in historySeries)
+            {
+                s.Enabled = setter;
+            }
+        }
+
+        public List<Series> GetLiveSeries()
+        {
+            return liveSeries;
+        }
+        public List<Series> GetHistorySeries()
+        {
+            return historySeries;
+        }
 
         public abstract DateTime GetFirstDatapointDateTime();
 
+        public int getnDatapoints()
+        {
+            TimeSpan dataspan = DateTime.Now - GetFirstDatapointDateTime();
+            return (int)dataspan.TotalSeconds;
+        }
+    }
+	public abstract class AnInstanceWithDatapoint<TDataPointType> : AnInstance where TDataPointType : Datapoint , new()  
+    {
+        public AnInstanceWithDatapoint()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                db.CreateTable<TDataPointType>();
+            }
+        }
+        public override DateTime GetFirstDatapointDateTime()
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                if (db.Find<TDataPointType>(1) != null)
+                {
+                    var firstPoint = db.Get<TDataPointType>(1);
+                    return firstPoint.time;
+                }
 
-		public int getnDatapoints()
-		{
-			TimeSpan dataspan = DateTime.Now - GetFirstDatapointDateTime();
-			return (int)dataspan.TotalSeconds;
-		}
+                return DateTime.Now;
+            }
+        }
 
-	}
+        protected void saveInfoToDB(SQLiteConnection db)
+        {
+            db.Insert(currentDatapoint);
+        }
+        
+        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
+        {
+            using (var db = new SQLiteConnection(dbPath))
+            {
+                datapoints.Clear();
+                DateTime end = start + width;
+                var query = db.Table<TDataPointType>()
+                    .Where(d => d.time >= start && d.time <= end && (d.instanceName==null || d.instanceName==instanceName))
+                    .ToList<TDataPointType>();
+                datapoints.AddRange(query);
+            }
+        }
+
+    }
 
 
 
-	public class MemoryInstance : AnInstance
+	public class MemoryInstance : AnInstanceWithDatapoint<MemoryDatapoint>
 	{
 		private PerformanceCounter memCounter;
 		private int totalMemory;
-        public MemoryDatapoint currentDatapoint { get; private set; }
 
         public MemoryInstance(string name)
 		{
-			instanceName = name;
+            instanceName = name;
 			memCounter = new PerformanceCounter("Memory", "Available MBytes");
 			totalMemory = (int)GetTotalMemoryInMBytes();
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DarkOrchid });
-
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                db.CreateTable<MemoryDatapoint>();
-            }
         }
 
 		static ulong GetTotalMemoryInMBytes()
@@ -110,14 +144,9 @@ namespace ResourceLogger
             saveInfoToDB(db);
 		}
 
-        private void saveInfoToDB(SQLiteConnection db)
-        {
-                db.Insert(currentDatapoint);
-        }
-
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.mem);
+			liveSeries[0].Points.AddXY(DateTime.Now, ((MemoryDatapoint)currentDatapoint).mem);
 		}
 
 		public override AxisRange GetLiveYAxisRange()
@@ -140,8 +169,8 @@ namespace ResourceLogger
             getRelevantDatapoints(start,width,pointWidth);
 
 			string historySummary = "";
-			int count = 0;
 			double total = 0;
+            int count = 0;
 
 			if (datapoints.Count > 0)
 			{
@@ -175,8 +204,8 @@ namespace ResourceLogger
 				prevTime = datapoint.time;
 				historySeries[0].Points.AddXY(datapoint.time, datapoint.mem);
 				total += datapoint.mem;
-				count++;
-			}
+                count++;
+            }
 
 			if (datapoints.Count > 0)
 			{
@@ -201,43 +230,16 @@ namespace ResourceLogger
 			return historySummary;
 		}
 
-        public override DateTime GetFirstDatapointDateTime()
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                if (db.Find<MemoryDatapoint>(1) != null)
-                {
-                    var firstPoint = db.Get<MemoryDatapoint>(1);
-                    return firstPoint.time;
-                }
-
-                return DateTime.Now;
-            }
-        }
-
-        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                datapoints.Clear();
-                DateTime end = start + width;
-                var query = db.Table<MemoryDatapoint>().Where(d => d.time >= start && d.time <= end).ToList<MemoryDatapoint>();
-                datapoints.AddRange(query);
-            }
-        }
-
     }
 
-	public class DiskInstance : AnInstance
-	{
+	public class DiskInstance : AnInstanceWithDatapoint<DiskDatapoint>
+    {
 		public PerformanceCounter readCounter;
 		public PerformanceCounter writeCounter;
-        public DiskDatapoint currentDatapoint { get; private set; }
-
 
         public DiskInstance(string name)
-		{
-			instanceName = name + "disk usage";
+        {
+            instanceName = name + "disk usage";
 			readCounter = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", name);
 			writeCounter = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", name);
 
@@ -245,22 +247,12 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
-
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                db.CreateTable<DiskDatapoint>();
-            }
-        }
-
-        private void saveInfoToDB(SQLiteConnection db)
-        {
-                db.Insert(currentDatapoint);
         }
 
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.write / currentDatapoint.span.TotalSeconds);
-			liveSeries[1].Points.AddXY(DateTime.Now, currentDatapoint.read / currentDatapoint.span.TotalSeconds);
+			liveSeries[0].Points.AddXY(DateTime.Now, ((DiskDatapoint)currentDatapoint).write / currentDatapoint.span.TotalSeconds);
+			liveSeries[1].Points.AddXY(DateTime.Now, ((DiskDatapoint)currentDatapoint).read / currentDatapoint.span.TotalSeconds);
 		}
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
@@ -326,7 +318,6 @@ namespace ResourceLogger
 			historySeries[1].Points.Clear();
 
 			string historySummary = "";
-			int count = 0;
 			double totalRead = 0;
 			double totalWrite = 0;
 
@@ -372,7 +363,6 @@ namespace ResourceLogger
 				historySeries[1].Points.AddXY(datapoint.time, datapoint.read / datapoint.span.TotalSeconds);
 				totalRead += datapoint.read;
 				totalWrite += datapoint.write;
-				count++;//?? eh
 			}
 
 			if (datapoints.Count > 0)
@@ -402,40 +392,16 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-        public override DateTime GetFirstDatapointDateTime()
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                if (db.Find<DiskDatapoint>(1) != null)
-                {
-                    var firstPoint = db.Get<DiskDatapoint>(1);
-                    return firstPoint.time;
-                }
-
-                return DateTime.Now;
-            }
-        }
-        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                datapoints.Clear();
-                DateTime end = start + width;
-                var query = db.Table<DiskDatapoint>().Where(d => d.time >= start && d.time <= end && d.instanceName == instanceName).ToList<DiskDatapoint>();
-                datapoints.AddRange(query);
-            }
-        }
     };
 
-	public class NetworkInstance : AnInstance
+	public class NetworkInstance : AnInstanceWithDatapoint<NetworkDatapoint>
 	{
 		public PerformanceCounter readCounter;
 		public PerformanceCounter writeCounter;
-        public NetworkDatapoint currentDatapoint { get; private set; }
 
         public NetworkInstance(string name)
 		{
-			instanceName = name + "network usage";
+            instanceName = name + "network usage";
 			readCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", name);
 			writeCounter = new PerformanceCounter("Network Interface", "Bytes Sent/sec", name);
 
@@ -443,23 +409,12 @@ namespace ResourceLogger
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Red });
-
-
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                db.CreateTable<NetworkDatapoint>();
-            }
-        }
-
-        private void saveInfoToDB(SQLiteConnection db)
-        {
-                db.Insert(currentDatapoint);
         }
 
         private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.write / currentDatapoint.span.TotalSeconds * 8);
-			liveSeries[1].Points.AddXY(DateTime.Now, currentDatapoint.read / currentDatapoint.span.TotalSeconds * 8);
+			liveSeries[0].Points.AddXY(DateTime.Now, ((NetworkDatapoint)currentDatapoint).write / currentDatapoint.span.TotalSeconds * 8);
+			liveSeries[1].Points.AddXY(DateTime.Now, ((NetworkDatapoint)currentDatapoint).read / currentDatapoint.span.TotalSeconds * 8);
 		}
 
 		public override void nextValues(TimeSpan span, SQLiteConnection db)
@@ -525,7 +480,6 @@ namespace ResourceLogger
 			historySeries[1].Points.Clear();
 
 			string historySummary = "";
-			int count = 0;
 			double totalRead = 0;
 			double totalWrite = 0;
 
@@ -571,7 +525,6 @@ namespace ResourceLogger
 				historySeries[1].Points.AddXY(datapoint.time, datapoint.read / datapoint.span.TotalSeconds*8);
 				totalRead += datapoint.read;
 				totalWrite += datapoint.write;
-				count++;//?? eh
 			}
 
 			if (datapoints.Count > 0)
@@ -601,53 +554,24 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-        public override DateTime GetFirstDatapointDateTime()
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                if (db.Find<NetworkDatapoint>(1) != null)
-                {
-                    var firstPoint = db.Get<NetworkDatapoint>(1);
-                    return firstPoint.time;
-                }
-
-                return DateTime.Now;
-            }
-        }
-        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                datapoints.Clear();
-                DateTime end = start + width;
-                var query = db.Table<NetworkDatapoint>().Where(d => d.time >= start && d.time <= end && d.instanceName == instanceName).ToList<NetworkDatapoint>();
-                datapoints.AddRange(query);
-            }
-        }
     };
 
-	public class CpuInstance : AnInstance
+	public class CpuInstance : AnInstanceWithDatapoint<CPUDatapoint>
 	{
 		PerformanceCounter totalCpuTimeCount;
-        public CPUDatapoint currentDatapoint { get; private set; }
 
         public CpuInstance(string name)
 		{
-			instanceName = name;
+            instanceName = name;
 			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
-
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                db.CreateTable<CPUDatapoint>();
-            }
         }
 
 		private void writeToSeries()
 		{
-			liveSeries[0].Points.AddXY(DateTime.Now, currentDatapoint.usage);
+			liveSeries[0].Points.AddXY(DateTime.Now, ((CPUDatapoint)currentDatapoint).usage);
 
 		}
 
@@ -662,13 +586,6 @@ namespace ResourceLogger
 			writeToSeries();
             saveInfoToDB(db);
         }
-
-
-        private void saveInfoToDB(SQLiteConnection db)
-        {
-                db.Insert(currentDatapoint);
-        }
-
 
 		public override AxisRange GetLiveYAxisRange()
 		{
@@ -754,29 +671,5 @@ namespace ResourceLogger
 
 			return historySummary;
 		}
-        public override DateTime GetFirstDatapointDateTime()
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                if (db.Find<CPUDatapoint>(1)!=null)
-                {
-                    var firstPoint = db.Get<CPUDatapoint>(1);
-                    return firstPoint.time;
-                }
-
-                return DateTime.Now;
-            }
-        }
-        protected void getRelevantDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
-        {
-            using (var db = new SQLiteConnection(dbPath))
-            {
-                datapoints.Clear();
-                //var datapoints = db.Query<CPUDatapoint>("SELECT * FROM CPUDatapoint WHERE time...");
-                DateTime end = start + width;
-                var query = db.Table<CPUDatapoint>().Where(d => d.time >= start && d.time <=end).ToList<CPUDatapoint>();
-                datapoints.AddRange(query);
-            }
-        }
 	}
 }
