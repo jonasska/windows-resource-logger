@@ -108,6 +108,30 @@ namespace ResourceLogger
                     .ToList<TDataPointType>();
                 datapoints.AddRange(query);
             }
+            compressDatapoints(pointWidth);
+        }
+
+        private void compressDatapoints(TimeSpan pointWidth)
+        {
+            List<Datapoint> points = new List<Datapoint>();
+            for (int i = 0; i < datapoints.Count; i++)
+            {
+                Datapoint p = datapoints[i];
+                for (  ; i < datapoints.Count-1; i++)
+                {
+                    if (p.span < pointWidth && (p.time+TimeSpan.FromTicks((long)(p.span.Ticks*1.5))) > datapoints[i + 1].time) // if span is less than width and and span is close to next point 
+                    {
+                        p.addDatapoint(datapoints[i+1]);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                points.Add(p);
+            }
+
+            datapoints = points;
         }
 
     }

@@ -24,20 +24,12 @@ namespace ResourceLogger
             
         }
 
-        //public abstract T aggregateDatapoints(List<T> points);
+        public abstract void addDatapoint(Datapoint point);
     }
 
 	public class MemoryDatapoint : Datapoint
 	{
 		public int mem { get; set; }
-
-        public MemoryDatapoint(string point)
-		{
-			var data = point.Split(',');
-			time = new DateTime(long.Parse(data[0]) * 10000);
-			mem = int.Parse(data[1]);
-			span = new TimeSpan(long.Parse(data[2]) * 10000);
-		}
 
         public MemoryDatapoint(DateTime t, TimeSpan s, int m)
         {
@@ -50,26 +42,17 @@ namespace ResourceLogger
             
         }
 
-		public void addDatapoint(string point)
-		{
-			MemoryDatapoint p = new MemoryDatapoint(point);
-			span += p.span;
-		}
-	}
+        public override void addDatapoint(Datapoint point)
+        {
+            var p = (MemoryDatapoint) point;
+            span += p.span;
+        }
+    }
 
 	public class DiskDatapoint : Datapoint
 	{
 		public double read { get; set; }
         public double write { get; set; }
-
-        public DiskDatapoint(string point)
-		{
-			var data = point.Split(',');
-			time = new DateTime(long.Parse(data[0]) * 10000);
-			read = double.Parse(data[1]);
-			write = double.Parse(data[2]);
-			span = new TimeSpan(long.Parse(data[3]) * 10000);
-		}
 
         public DiskDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
         {
@@ -84,29 +67,19 @@ namespace ResourceLogger
             
         }
 
-		public void addDatapoint(string point)
-		{
-			DiskDatapoint p = new DiskDatapoint(point);
-			read += p.read;
-			write += p.write;
-			span += p.span;
-		}
-
-	}
+        public override void addDatapoint(Datapoint point)
+        {
+            var p = (DiskDatapoint)point;
+            read += p.read;
+            write += p.write;
+            span += p.span;
+        }
+    }
 
 	public class NetworkDatapoint : Datapoint
 	{
 		public double read { get; set; }
         public double write { get; set; }
-
-        public NetworkDatapoint(string point)
-		{
-			var data = point.Split(',');
-			time = new DateTime(long.Parse(data[0]) * 10000);
-			read = double.Parse(data[1]);
-			write = double.Parse(data[2]);
-			span = new TimeSpan(long.Parse(data[3]) * 10000);
-		}
 
         public NetworkDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
         {
@@ -120,28 +93,20 @@ namespace ResourceLogger
         {
         }
 
-		public void addDatapoint(string point)
-		{
-			NetworkDatapoint p = new NetworkDatapoint(point);
-			read += p.read;
-			write += p.write;
-			span += p.span;
-		}
-	}
+        public override void addDatapoint(Datapoint point)
+        {
+            var p = (NetworkDatapoint)point;
+            read += p.read;
+            write += p.write;
+            span += p.span;
+        }
+    }
 
 	public class CPUDatapoint : Datapoint
 	{
 		public TimeSpan cpuSpan { get; set; }
         public double usage { get; set; }
 
-        public CPUDatapoint(string point)
-		{
-			var data = point.Split(',');
-			time = new DateTime(long.Parse(data[0]) * 10000);
-			cpuSpan = new TimeSpan(long.Parse(data[1]) * 10000);
-			span = new TimeSpan(long.Parse(data[2]) * 10000);
-			usage = cpuSpan.TotalSeconds / span.TotalSeconds * 100.0;
-		}
         public CPUDatapoint(DateTime t, TimeSpan cpuS, TimeSpan s)
         {
             time = t;
@@ -153,13 +118,12 @@ namespace ResourceLogger
         {
         }
 
-
-        public void addDatapoint(string point)
-		{
-			CPUDatapoint p = new CPUDatapoint(point);
-			cpuSpan += p.cpuSpan;
-			span += p.span;
-			usage = 100 * cpuSpan.TotalSeconds / span.TotalSeconds;
-		}
-	}
+        public override void addDatapoint(Datapoint point)
+        {
+            var p = (CPUDatapoint)point;
+            cpuSpan += p.cpuSpan;
+            span += p.span;
+            usage = 100 * cpuSpan.TotalSeconds / span.TotalSeconds;
+        }
+    }
 }
