@@ -23,14 +23,10 @@ namespace ResourceLogger
         protected List<Series> liveSeries;
         protected List<Series> historySeries;
 
-        public Datapoint currentDatapoint;
-        protected List<Datapoint> datapoints;
-
         protected AnInstance()
         {
             liveSeries = new List<Series>();
             historySeries = new List<Series>();
-            datapoints = new List<Datapoint>();
             isSelected = false;
         }
 
@@ -71,8 +67,12 @@ namespace ResourceLogger
     }
 	public abstract class AnInstanceWithDatapoint<TDataPointType> : AnInstance where TDataPointType : Datapoint , new()  
     {
+        public TDataPointType currentDatapoint;
+        protected List<TDataPointType> datapoints;
+
         public AnInstanceWithDatapoint()
         {
+            datapoints = new List<TDataPointType>();
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<TDataPointType>();
@@ -104,7 +104,7 @@ namespace ResourceLogger
                 datapoints.Clear();
                 DateTime end = start + width;
                 var query = db.Table<TDataPointType>()
-                    .Where(d => d.time >= start && d.time <= end && (d.instanceName==null || d.instanceName==instanceName))
+                    .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
                     .ToList<TDataPointType>();
                 datapoints.AddRange(query);
             }
@@ -113,12 +113,12 @@ namespace ResourceLogger
 
         private void compressAndFixDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
-            List<Datapoint> points = new List<Datapoint>();
+            List<TDataPointType> points = new List<TDataPointType>();
 
 
             if (datapoints.Count > 0) // add datapoint at the begining if needed
             {
-                Datapoint datapoint = datapoints[0];
+                TDataPointType datapoint = datapoints[0];
                 TimeSpan spanBetweenPoints = datapoint.time - start;
                 if (spanBetweenPoints > pointWidth+ pointWidth)
                 {
@@ -136,7 +136,7 @@ namespace ResourceLogger
 
             for (int i = 0; i < datapoints.Count; i++)
             {
-                Datapoint p = datapoints[i];
+                TDataPointType p = datapoints[i];
                 for (  ; i < datapoints.Count-1; i++)
                 {
                     if (p.time + p.span + pointWidth+ pointWidth > datapoints[i + 1].time) // if span is close to next point 
@@ -165,7 +165,7 @@ namespace ResourceLogger
 
             if (datapoints.Count > 0) // at the end
             {
-                Datapoint datapoint = datapoints[datapoints.Count - 1];
+                TDataPointType datapoint = datapoints[datapoints.Count - 1];
                 TimeSpan spanBetweenPoints = start + width - datapoint.time;
                 if (spanBetweenPoints > pointWidth + pointWidth)
                 {
