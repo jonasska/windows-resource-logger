@@ -19,7 +19,7 @@ namespace ResourceLogger
         //[Indexed]
         public string instanceName { get; set; }
 
-        public Datapoint()
+        public Datapoint() // default datapoint
         {
             
         }
@@ -39,7 +39,7 @@ namespace ResourceLogger
         }
         public MemoryDatapoint()
         {
-            
+            mem = 0;
         }
 
         public override void addDatapoint(Datapoint point)
@@ -62,9 +62,10 @@ namespace ResourceLogger
             write = w;
             instanceName = name;
         }
-        public DiskDatapoint()
+        public DiskDatapoint() // default datapoint
         {
-            
+            read = 0;
+            write = 0;
         }
 
         public override void addDatapoint(Datapoint point)
@@ -91,6 +92,8 @@ namespace ResourceLogger
         }
         public NetworkDatapoint()
         {
+            read = 0;
+            write = 0;
         }
 
         public override void addDatapoint(Datapoint point)
@@ -116,6 +119,7 @@ namespace ResourceLogger
         }
         public CPUDatapoint()
         {
+            usage = 0;
         }
 
         public override void addDatapoint(Datapoint point)

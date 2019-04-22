@@ -108,27 +108,70 @@ namespace ResourceLogger
                     .ToList<TDataPointType>();
                 datapoints.AddRange(query);
             }
-            compressDatapoints(pointWidth);
+            compressAndFixDatapoints(start, width, pointWidth);
         }
 
-        private void compressDatapoints(TimeSpan pointWidth)
+        private void compressAndFixDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
             List<Datapoint> points = new List<Datapoint>();
+
+
+            if (datapoints.Count > 0) // add datapoint at the begining if needed
+            {
+                Datapoint datapoint = datapoints[0];
+                TimeSpan spanBetweenPoints = datapoint.time - start;
+                if (spanBetweenPoints > pointWidth+ pointWidth)
+                {
+                    points.Add(new TDataPointType() { time = start, span = pointWidth });
+                    points.Add(new TDataPointType(){time = datapoint.time - pointWidth, span = pointWidth });
+                }
+            }
+            else
+            {
+                points.Add(new TDataPointType() { time = start, span = pointWidth });
+                points.Add(new TDataPointType() { time = start+width- pointWidth, span = pointWidth });
+            }
+
+
+
             for (int i = 0; i < datapoints.Count; i++)
             {
                 Datapoint p = datapoints[i];
                 for (  ; i < datapoints.Count-1; i++)
                 {
-                    if (p.span < pointWidth && (p.time+TimeSpan.FromTicks((long)(p.span.Ticks*1.5))) > datapoints[i + 1].time) // if span is less than width and and span is close to next point 
+                    if (p.time + p.span + pointWidth+ pointWidth > datapoints[i + 1].time) // if span is close to next point 
                     {
-                        p.addDatapoint(datapoints[i+1]);
+                        if (p.span < pointWidth) // if span is less than width
+                        {
+                            p.addDatapoint(datapoints[i + 1]);
+                        }
+                        else
+                        {
+                            points.Add(p);
+                            break;
+                        }
                     }
-                    else
+                    else // if not close to next point
                     {
+                        points.Add(p);
+                        // then add 2 zero points on both ends
+                        points.Add(new TDataPointType() { time = p.time + pointWidth, span = pointWidth });
+                        points.Add(new TDataPointType() { time = datapoints[i + 1].time - pointWidth, span = pointWidth });
                         break;
                     }
+
                 }
-                points.Add(p);
+            }
+
+            if (datapoints.Count > 0) // at the end
+            {
+                Datapoint datapoint = datapoints[datapoints.Count - 1];
+                TimeSpan spanBetweenPoints = start + width - datapoint.time;
+                if (spanBetweenPoints > pointWidth + pointWidth)
+                {
+                    points.Add(new TDataPointType() {time = datapoint.time + pointWidth, span = pointWidth});
+                    points.Add(new TDataPointType() { time = start + width - pointWidth, span = pointWidth });
+                }
             }
 
             datapoints = points;
@@ -196,51 +239,13 @@ namespace ResourceLogger
 			double total = 0;
             int count = 0;
 
-			if (datapoints.Count > 0)
-			{
-				MemoryDatapoint datapoint = (MemoryDatapoint)datapoints[0];
-				TimeSpan spanBetweenPoints = datapoint.time - start;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(start, 0.0);
-					historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-				}
-			}
-			else
-			{
-				historySeries[0].Points.AddXY(start, 0.0);
-				historySeries[0].Points.AddXY(start + width, 0.0);
-			}
-
-			DateTime prevTime = DateTime.Now;
 			foreach (var point in datapoints)
 			{
 				MemoryDatapoint datapoint = (MemoryDatapoint)point;
-				if (historySeries[0].Points.Count > 0)  // for marking 0 if measured large gap
-				{
-					TimeSpan spanBetweenPoints = datapoint.time - prevTime;
-					if (spanBetweenPoints > datapoint.span + datapoint.span)
-					{
-						historySeries[0].Points.AddXY(prevTime + datapoint.span, 0.0);
-						historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-					}
-				}
-				prevTime = datapoint.time;
 				historySeries[0].Points.AddXY(datapoint.time, datapoint.mem);
 				total += datapoint.mem;
                 count++;
             }
-
-			if (datapoints.Count > 0)
-			{
-				MemoryDatapoint datapoint = (MemoryDatapoint)datapoints[datapoints.Count - 1];
-				TimeSpan spanBetweenPoints = start + width - datapoint.time;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[0].Points.AddXY(start + width, 0.0);
-				}
-			}
 
 			if (datapoints.Count > 1) // position exists
 			{
@@ -347,59 +352,14 @@ namespace ResourceLogger
 
             getRelevantDatapoints(start, width, pointWidth);
 
-            if (datapoints.Count > 0)
-			{
-				DiskDatapoint datapoint = (DiskDatapoint)datapoints[0];
-				TimeSpan spanBetweenPoints = datapoint.time - start;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(start, 0.0);
-					historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-					historySeries[1].Points.AddXY(start, 0.0);
-					historySeries[1].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-				}
-			}
-			else
-			{
-				historySeries[0].Points.AddXY(start, 0.0);
-				historySeries[0].Points.AddXY(start + width, 0.0);
-				historySeries[1].Points.AddXY(start, 0.0);
-				historySeries[1].Points.AddXY(start + width, 0.0);
-			}
-
-			DateTime prevTime = DateTime.Now;
 			foreach (var point in datapoints)
 			{
-				DiskDatapoint datapoint = (DiskDatapoint)point;
-				if (historySeries[0].Points.Count > 0)
-				{
-					TimeSpan spanBetweenPoints = datapoint.time - prevTime;
-					if (spanBetweenPoints > datapoint.span + datapoint.span)
-					{
-						historySeries[0].Points.AddXY(prevTime + datapoint.span, 0.0);
-						historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-						historySeries[1].Points.AddXY(prevTime + datapoint.span, 0.0);
-						historySeries[1].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-					}
-				}
-				prevTime = datapoint.time;
-				historySeries[0].Points.AddXY(datapoint.time, datapoint.write / datapoint.span.TotalSeconds);
+                DiskDatapoint datapoint = (DiskDatapoint)point;
+
+                historySeries[0].Points.AddXY(datapoint.time, datapoint.write / datapoint.span.TotalSeconds);
 				historySeries[1].Points.AddXY(datapoint.time, datapoint.read / datapoint.span.TotalSeconds);
 				totalRead += datapoint.read;
 				totalWrite += datapoint.write;
-			}
-
-			if (datapoints.Count > 0)
-			{
-				DiskDatapoint datapoint = (DiskDatapoint)datapoints[datapoints.Count - 1];
-				TimeSpan spanBetweenPoints = start + width - datapoint.time;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[0].Points.AddXY(start + width, 0.0);
-					historySeries[1].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[1].Points.AddXY(start + width, 0.0);
-				}
 			}
 
 			if (datapoints.Count > 1) // position exists
@@ -509,59 +469,14 @@ namespace ResourceLogger
 
             getRelevantDatapoints(start, width, pointWidth);
 
-            if (datapoints.Count > 0)
-			{
-				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[0];
-				TimeSpan spanBetweenPoints = datapoint.time - start;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(start, 0.0);
-					historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-					historySeries[1].Points.AddXY(start, 0.0);
-					historySeries[1].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-				}
-			}
-			else
-			{
-				historySeries[0].Points.AddXY(start, 0.0);
-				historySeries[0].Points.AddXY(start + width, 0.0);
-				historySeries[1].Points.AddXY(start, 0.0);
-				historySeries[1].Points.AddXY(start + width, 0.0);
-			}
-
-			DateTime prevTime = DateTime.Now;
 			foreach (var point in datapoints)
 			{
 				NetworkDatapoint datapoint = (NetworkDatapoint)point;
-				if (historySeries[0].Points.Count > 0)
-				{
-					TimeSpan spanBetweenPoints = datapoint.time - prevTime;
-					if (spanBetweenPoints > datapoint.span + datapoint.span)
-					{
-						historySeries[0].Points.AddXY(prevTime + datapoint.span, 0.0);
-						historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-						historySeries[1].Points.AddXY(prevTime + datapoint.span, 0.0);
-						historySeries[1].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-					}
-				}
-				prevTime = datapoint.time;
+
 				historySeries[0].Points.AddXY(datapoint.time, datapoint.write / datapoint.span.TotalSeconds*8);
 				historySeries[1].Points.AddXY(datapoint.time, datapoint.read / datapoint.span.TotalSeconds*8);
 				totalRead += datapoint.read;
 				totalWrite += datapoint.write;
-			}
-
-			if (datapoints.Count > 0)
-			{
-				NetworkDatapoint datapoint = (NetworkDatapoint)datapoints[datapoints.Count-1];
-				TimeSpan spanBetweenPoints = start + width - datapoint.time;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[0].Points.AddXY(start + width, 0.0);
-					historySeries[1].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[1].Points.AddXY(start + width, 0.0);
-				}
 			}
 
 			if (datapoints.Count > 1) // position exists
@@ -634,53 +549,13 @@ namespace ResourceLogger
 			int count = 0;
 			double total = 0;
 
-
-			if (datapoints.Count > 0)
-			{
-				CPUDatapoint datapoint = (CPUDatapoint)datapoints[0];
-				TimeSpan spanBetweenPoints = datapoint.time - start;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(start, 0.0);
-					historySeries[0].Points.AddXY(datapoint.time - datapoint.span, 0.0);
-				}
-			}
-			else
-			{
-				historySeries[0].Points.AddXY(start, 0.0);
-				historySeries[0].Points.AddXY(start + width, 0.0);
-			}
-
-			DateTime prevTime = DateTime.Now;
 			foreach (var point in datapoints)
 			{
 				CPUDatapoint datapoint = (CPUDatapoint)point;
-				if (historySeries[0].Points.Count > 0)
-				{
-					TimeSpan spanBetweenPoints = datapoint.time - prevTime;
-					if (spanBetweenPoints > datapoint.span + datapoint.span)
-					{
-						DateTime first = prevTime + datapoint.span;
-						DateTime second = datapoint.time - datapoint.span;
-						historySeries[0].Points.AddXY(first, 0);
-						historySeries[0].Points.AddXY(second, 0);
-					}
-				}
-				prevTime = datapoint.time;
+
 				historySeries[0].Points.AddXY(datapoint.time, datapoint.usage);
 				total += datapoint.usage;
 				count++;
-			}
-
-			if (datapoints.Count > 0)
-			{
-				CPUDatapoint datapoint = (CPUDatapoint)datapoints[datapoints.Count-1];
-				TimeSpan spanBetweenPoints = start + width - datapoint.time;
-				if (spanBetweenPoints > datapoint.span + datapoint.span)
-				{
-					historySeries[0].Points.AddXY(datapoint.time + datapoint.span, 0.0);
-					historySeries[0].Points.AddXY(start + width, 0.0);
-				}
 			}
 
 			if (datapoints.Count > 1) // position exists
