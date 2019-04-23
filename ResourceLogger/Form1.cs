@@ -112,12 +112,16 @@ namespace ResourceLogger
 		private void reloadHistoryButton_Click(object sender, EventArgs e)
 		{
 			int datapoints = logger.systemLog.getSelectedInstance().getnDatapoints();
-			hScrollBar1.Value = 0;
+			//hScrollBar1.Value = 0;
 			hScrollBar1.Maximum = datapoints;
 			if (datapoints > hScrollBar1.LargeChange)
 			{
 				hScrollBar1.Value = datapoints - hScrollBar1.LargeChange;
 			}
+            else
+            {
+                hScrollBar1.Value = 0;
+            }
 
 		}
 

@@ -68,11 +68,14 @@ namespace ResourceLogger
 	public abstract class AnInstanceWithDatapoint<TDataPointType> : AnInstance where TDataPointType : Datapoint , new()  
     {
         public TDataPointType currentDatapoint;
-        protected List<TDataPointType> datapoints;
+        protected List<TDataPointType> queriedDatapoints;
+        protected List<TDataPointType> compressedDatapoints;
+        protected DateTime loadedDatapointStart;
+        protected DateTime loadedDatapointEnd;
 
         public AnInstanceWithDatapoint()
         {
-            datapoints = new List<TDataPointType>();
+            queriedDatapoints = new List<TDataPointType>();
             using (var db = new SQLiteConnection(dbPath))
             {
                 db.CreateTable<TDataPointType>();
@@ -101,24 +104,60 @@ namespace ResourceLogger
         {
             using (var db = new SQLiteConnection(dbPath))
             {
-                datapoints.Clear();
-                DateTime end = start + width;
-                var query = db.Table<TDataPointType>()
-                    .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
-                    .ToList<TDataPointType>();
-                datapoints.AddRange(query);
+                
+                if (loadedDatapointStart.Year < 2018 || loadedDatapointEnd.Year < 2018)
+                {
+                    queriedDatapoints.Clear();
+                    DateTime end = start + width;
+                    var query = db.Table<TDataPointType>()
+                        .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
+                        .ToList<TDataPointType>();
+                    queriedDatapoints.AddRange(query);
+                    loadedDatapointStart = start;
+                    loadedDatapointEnd = end;
+                }
+                else
+                {
+                    if (start < loadedDatapointStart)
+                    {
+                        DateTime end = loadedDatapointStart; // finish at the start of existing data
+                        var query = db.Table<TDataPointType>()
+                            .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
+                            .ToList<TDataPointType>();
+                        queriedDatapoints.AddRange(query);
+                        loadedDatapointStart = start;
+                    }
+                    if (start + width > loadedDatapointEnd)
+                    {
+                        DateTime end = start + width; // start at the end of existing data and finish at the end
+                        var query = db.Table<TDataPointType>()
+                            .Where(d => d.time >= loadedDatapointEnd && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
+                            .ToList<TDataPointType>();
+                        queriedDatapoints.AddRange(query);
+                        loadedDatapointEnd = start + width;
+                    }
+                    queriedDatapoints.Sort((a, b) => a.time.CompareTo(b.time));
+                }
+                
             }
             compressAndFixDatapoints(start, width, pointWidth);
         }
 
         private void compressAndFixDatapoints(DateTime start, TimeSpan width, TimeSpan pointWidth)
         {
+            List<TDataPointType> relevantDataPoints = new List<TDataPointType>();
+            foreach (var p in queriedDatapoints)
+            {
+                if (p.time >= start && p.time <= start+width)
+                {
+                    relevantDataPoints.Add(p);
+                }
+            }
             List<TDataPointType> points = new List<TDataPointType>();
 
-
-            if (datapoints.Count > 0) // add datapoint at the begining if needed
+            if (relevantDataPoints.Count > 0) // add datapoint at the begining if needed
             {
-                TDataPointType datapoint = datapoints[0];
+                TDataPointType datapoint = relevantDataPoints[0];
                 TimeSpan spanBetweenPoints = datapoint.time - start;
                 if (spanBetweenPoints > pointWidth+ pointWidth)
                 {
@@ -134,16 +173,16 @@ namespace ResourceLogger
 
 
 
-            for (int i = 0; i < datapoints.Count; i++)
+            for (int i = 0; i < relevantDataPoints.Count; i++)
             {
-                TDataPointType p = datapoints[i];
-                for (  ; i < datapoints.Count-1; i++)
+                TDataPointType p = relevantDataPoints[i];
+                for (  ; i < relevantDataPoints.Count-1; i++)
                 {
-                    if (p.time + p.span + pointWidth+ pointWidth > datapoints[i + 1].time) // if span is close to next point 
+                    if (p.time + p.span + pointWidth+ pointWidth > relevantDataPoints[i + 1].time) // if span is close to next point 
                     {
                         if (p.span < pointWidth) // if span is less than width
                         {
-                            p.addDatapoint(datapoints[i + 1]);
+                            p.addDatapoint(relevantDataPoints[i + 1]);
                         }
                         else
                         {
@@ -156,16 +195,16 @@ namespace ResourceLogger
                         points.Add(p);
                         // then add 2 zero points on both ends
                         points.Add(new TDataPointType() { time = p.time + pointWidth, span = pointWidth });
-                        points.Add(new TDataPointType() { time = datapoints[i + 1].time - pointWidth, span = pointWidth });
+                        points.Add(new TDataPointType() { time = relevantDataPoints[i + 1].time - pointWidth, span = pointWidth });
                         break;
                     }
 
                 }
             }
 
-            if (datapoints.Count > 0) // at the end
+            if (relevantDataPoints.Count > 0) // at the end
             {
-                TDataPointType datapoint = datapoints[datapoints.Count - 1];
+                TDataPointType datapoint = relevantDataPoints[relevantDataPoints.Count - 1];
                 TimeSpan spanBetweenPoints = start + width - datapoint.time;
                 if (spanBetweenPoints > pointWidth + pointWidth)
                 {
@@ -174,7 +213,7 @@ namespace ResourceLogger
                 }
             }
 
-            datapoints = points;
+            compressedDatapoints = points;
         }
 
     }
@@ -239,7 +278,7 @@ namespace ResourceLogger
 			double total = 0;
             int count = 0;
 
-			foreach (var point in datapoints)
+			foreach (var point in compressedDatapoints)
 			{
 				MemoryDatapoint datapoint = (MemoryDatapoint)point;
 				historySeries[0].Points.AddXY(datapoint.time, datapoint.mem);
@@ -247,10 +286,10 @@ namespace ResourceLogger
                 count++;
             }
 
-			if (datapoints.Count > 1) // position exists
+			if (compressedDatapoints.Count > 1) // position exists
 			{
-                DateTime firstTime = datapoints[0].time;
-                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                DateTime firstTime = compressedDatapoints[0].time;
+                DateTime lastTime = compressedDatapoints[compressedDatapoints.Count - 1].time;
 				TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 								 "Average Memory consumption: " + (total / count).ToString("#.000") + "MB";// + Environment.NewLine;
@@ -352,7 +391,7 @@ namespace ResourceLogger
 
             getRelevantDatapoints(start, width, pointWidth);
 
-			foreach (var point in datapoints)
+			foreach (var point in compressedDatapoints)
 			{
                 DiskDatapoint datapoint = (DiskDatapoint)point;
 
@@ -362,10 +401,10 @@ namespace ResourceLogger
 				totalWrite += datapoint.write;
 			}
 
-			if (datapoints.Count > 1) // position exists
+			if (compressedDatapoints.Count > 1) // position exists
 			{
-                DateTime firstTime = datapoints[0].time;
-                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                DateTime firstTime = compressedDatapoints[0].time;
+                DateTime lastTime = compressedDatapoints[compressedDatapoints.Count - 1].time;
                 TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 				                 "Total disk read: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
@@ -469,7 +508,7 @@ namespace ResourceLogger
 
             getRelevantDatapoints(start, width, pointWidth);
 
-			foreach (var point in datapoints)
+			foreach (var point in compressedDatapoints)
 			{
 				NetworkDatapoint datapoint = (NetworkDatapoint)point;
 
@@ -479,10 +518,10 @@ namespace ResourceLogger
 				totalWrite += datapoint.write;
 			}
 
-			if (datapoints.Count > 1) // position exists
+			if (compressedDatapoints.Count > 1) // position exists
 			{
-                DateTime firstTime = datapoints[0].time;
-                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                DateTime firstTime = compressedDatapoints[0].time;
+                DateTime lastTime = compressedDatapoints[compressedDatapoints.Count - 1].time;
                 TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
 				                 "Total network received: " + (totalRead / 1024).ToString("#.000") + "GB" + Environment.NewLine +
@@ -549,7 +588,7 @@ namespace ResourceLogger
 			int count = 0;
 			double total = 0;
 
-			foreach (var point in datapoints)
+			foreach (var point in compressedDatapoints)
 			{
 				CPUDatapoint datapoint = (CPUDatapoint)point;
 
@@ -558,10 +597,10 @@ namespace ResourceLogger
 				count++;
 			}
 
-			if (datapoints.Count > 1) // position exists
+			if (compressedDatapoints.Count > 1) // position exists
             {
-                DateTime firstTime = datapoints[0].time;
-                DateTime lastTime = datapoints[datapoints.Count - 1].time;
+                DateTime firstTime = compressedDatapoints[0].time;
+                DateTime lastTime = compressedDatapoints[compressedDatapoints.Count - 1].time;
 
                 TimeSpan selectionSpan = lastTime - firstTime;
 				historySummary = "Selection period: " + selectionSpan.ToString() + Environment.NewLine +
