@@ -15,21 +15,16 @@ namespace ResourceLogger
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
         public DateTime time { get; set; }
-        public TimeSpan span { get; set; }
+        public TimeSpan span { get; set; } = TimeSpan.Zero;
         //[Indexed]
         public string instanceName { get; set; }
-
-        public Datapoint() // default datapoint
-        {
-            
-        }
 
         public abstract void addDatapoint(Datapoint point);
     }
 
 	public class MemoryDatapoint : Datapoint
-	{
-		public int mem { get; set; }
+    {
+        public int mem { get; set; } = 0;
 
         public MemoryDatapoint(DateTime t, TimeSpan s, int m)
         {
@@ -37,10 +32,8 @@ namespace ResourceLogger
             span = s;
             mem = m;
         }
-        public MemoryDatapoint()
-        {
-            mem = 0;
-        }
+
+        public MemoryDatapoint(){}
 
         public override void addDatapoint(Datapoint point)
         {
@@ -50,9 +43,9 @@ namespace ResourceLogger
     }
 
 	public class DiskDatapoint : Datapoint
-	{
-		public double read { get; set; }
-        public double write { get; set; }
+    {
+        public double read { get; set; } = 0;
+        public double write { get; set; } = 0;
 
         public DiskDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
         {
@@ -62,11 +55,7 @@ namespace ResourceLogger
             write = w;
             instanceName = name;
         }
-        public DiskDatapoint() // default datapoint
-        {
-            read = 0;
-            write = 0;
-        }
+        public DiskDatapoint(){}
 
         public override void addDatapoint(Datapoint point)
         {
@@ -78,9 +67,9 @@ namespace ResourceLogger
     }
 
 	public class NetworkDatapoint : Datapoint
-	{
-		public double read { get; set; }
-        public double write { get; set; }
+    {
+        public double read { get; set; } = 0;
+        public double write { get; set; } = 0;
 
         public NetworkDatapoint(DateTime t, TimeSpan s, double r, double w, string name)
         {
@@ -90,11 +79,7 @@ namespace ResourceLogger
             write = w;
             instanceName = name;
         }
-        public NetworkDatapoint()
-        {
-            read = 0;
-            write = 0;
-        }
+        public NetworkDatapoint(){}
 
         public override void addDatapoint(Datapoint point)
         {
@@ -107,8 +92,8 @@ namespace ResourceLogger
 
 	public class CPUDatapoint : Datapoint
 	{
-		public TimeSpan cpuSpan { get; set; }
-        public double usage { get; set; }
+		public TimeSpan cpuSpan { get; set; } = TimeSpan.Zero;
+        public double usage { get; set; } = 0;
 
         public CPUDatapoint(DateTime t, TimeSpan cpuS, TimeSpan s)
         {
@@ -117,10 +102,7 @@ namespace ResourceLogger
             span = s;
             usage = cpuSpan.TotalSeconds / span.TotalSeconds * 100.0;
         }
-        public CPUDatapoint()
-        {
-            usage = 0;
-        }
+        public CPUDatapoint(){}
 
         public override void addDatapoint(Datapoint point)
         {
