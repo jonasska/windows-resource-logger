@@ -105,38 +105,17 @@ namespace ResourceLogger
             using (var db = new SQLiteConnection(dbPath))
             {
                 
-                if (loadedDatapointStart.Year < 2018 || loadedDatapointEnd.Year < 2018)
+                if (loadedDatapointStart.Year < 2018 || loadedDatapointEnd.Year < 2018 || start < loadedDatapointStart || start + width > loadedDatapointEnd)
                 {
                     queriedDatapoints.Clear();
-                    DateTime end = start + width;
+                    DateTime begin = start - TimeSpan.FromTicks(width.Ticks*2);
+                    DateTime end = start + TimeSpan.FromTicks(width.Ticks * 3);
                     var query = db.Table<TDataPointType>()
-                        .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
+                        .Where(d => d.time >= begin && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
                         .ToList<TDataPointType>();
                     queriedDatapoints.AddRange(query);
-                    loadedDatapointStart = start;
+                    loadedDatapointStart = begin;
                     loadedDatapointEnd = end;
-                }
-                else
-                {
-                    if (start < loadedDatapointStart)
-                    {
-                        DateTime end = loadedDatapointStart; // finish at the start of existing data
-                        var query = db.Table<TDataPointType>()
-                            .Where(d => d.time >= start && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
-                            .ToList<TDataPointType>();
-                        queriedDatapoints.AddRange(query);
-                        loadedDatapointStart = start;
-                    }
-                    if (start + width > loadedDatapointEnd)
-                    {
-                        DateTime end = start + width; // start at the end of existing data and finish at the end
-                        var query = db.Table<TDataPointType>()
-                            .Where(d => d.time >= loadedDatapointEnd && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
-                            .ToList<TDataPointType>();
-                        queriedDatapoints.AddRange(query);
-                        loadedDatapointEnd = start + width;
-                    }
-                    queriedDatapoints.Sort((a, b) => a.time.CompareTo(b.time));
                 }
                 
             }
@@ -150,7 +129,7 @@ namespace ResourceLogger
             {
                 if (p.time >= start && p.time <= start+width)
                 {
-                    relevantDataPoints.Add((TDataPointType)p.Clone());
+                    relevantDataPoints.Add(p);
                 }
             }
             List<TDataPointType> points = new List<TDataPointType>();
@@ -175,7 +154,7 @@ namespace ResourceLogger
 
             for (int i = 0; i < relevantDataPoints.Count; i++)
             {
-                TDataPointType p = relevantDataPoints[i];
+                TDataPointType p = (TDataPointType)relevantDataPoints[i].Clone();
                 for (  ; i < relevantDataPoints.Count-1; i++)
                 {
                     if (p.time + p.span + pointWidth+ pointWidth > relevantDataPoints[i + 1].time) // if span is close to next point 
