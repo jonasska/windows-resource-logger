@@ -148,10 +148,13 @@ namespace ResourceLogger
                         .Where(d => d.time >= begin && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
                         .ToList<TDataPointType>();
                     queriedDatapoints.AddRange(query);
-                    loadedDatapointStart = begin;
-                    loadedDatapointEnd = end;
+                    if (queriedDatapoints.Count>0)
+                    {
+                        loadedDatapointStart = queriedDatapoints[0].time;
+                        loadedDatapointEnd = queriedDatapoints[queriedDatapoints.Count - 1].time;
+                    }
                 }
-                
+
             }
             compressAndFixDatapoints(start, width, pointWidth);
         }
