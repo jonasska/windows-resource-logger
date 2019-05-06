@@ -32,8 +32,6 @@ namespace ResourceLogger
 
         public abstract void nextValues(TimeSpan span, SQLiteConnection db);
 
-        public abstract AxisRange GetLiveYAxisRange();
-        public abstract AxisRange GetHistoryYAxisRange();
         public abstract string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth);
 
         public void SetSeriesVisible(bool setter)
@@ -63,6 +61,42 @@ namespace ResourceLogger
         {
             TimeSpan dataspan = DateTime.Now - GetFirstDatapointDateTime();
             return (int)dataspan.TotalSeconds;
+        }
+
+        public virtual AxisRange GetLiveYAxisRange()
+        {
+            AxisRange r;
+            r.lower = 0;
+            r.higher = 1;
+            foreach (var series in liveSeries)
+            {
+                foreach (var point in series.Points)
+                {
+                    while (point.YValues[0] > r.higher)
+                    {
+                        r.higher *= 2;
+                    }
+                }
+            }
+            return r;
+        }
+
+        public virtual AxisRange GetHistoryYAxisRange()
+        {
+            AxisRange r;
+            r.lower = 0;
+            r.higher = 1;
+            foreach (var series in historySeries)
+            {
+                foreach (var point in series.Points)
+                {
+                    while (point.YValues[0] > r.higher)
+                    {
+                        r.higher *= 2;
+                    }
+                }
+            }
+            return r;
         }
     }
 	public abstract class AnInstanceWithDatapoint<TDataPointType> : AnInstance where TDataPointType : Datapoint , new()  
@@ -315,50 +349,6 @@ namespace ResourceLogger
             saveInfoToDB(db);
 		}
 
-		public override AxisRange GetLiveYAxisRange()
-		{
-			AxisRange r;
-			r.lower = 0;
-			r.higher = 1;
-			foreach (var point in liveSeries[0].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			foreach (var point in liveSeries[1].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			return r;
-		}
-
-		public override AxisRange GetHistoryYAxisRange()
-		{
-			AxisRange r;
-			r.lower = 0;
-			r.higher = 1;
-			foreach (var point in historySeries[0].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			foreach (var point in historySeries[1].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			return r;
-		}
-
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
 			historySeries[0].Points.Clear();
@@ -431,50 +421,6 @@ namespace ResourceLogger
 			writeToSeries();
             saveInfoToDB(db);
         }
-
-		public override AxisRange GetLiveYAxisRange()
-		{
-			AxisRange r;
-			r.lower = 0;
-			r.higher = 1;
-			foreach (var point in liveSeries[0].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			foreach (var point in liveSeries[1].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			return r;
-		}
-
-		public override AxisRange GetHistoryYAxisRange()
-		{
-			AxisRange r;
-			r.lower = 0;
-			r.higher = 1;
-			foreach (var point in historySeries[0].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			foreach (var point in historySeries[1].Points)
-			{
-				while (point.YValues[0] > r.higher)
-				{
-					r.higher *= 2;
-				}
-			}
-			return r;
-		}
 
 		public override string drawHistoryGraph(DateTime start, TimeSpan width, TimeSpan pointWidth)
 		{
