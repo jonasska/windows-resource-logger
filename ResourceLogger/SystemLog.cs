@@ -45,8 +45,8 @@ namespace ResourceLogger
 				instances.Add(new DiskInstance(instance));
 			}
 
-			// networks
-			cat = new PerformanceCounterCategory("Network Interface");
+            // networks
+            cat = new PerformanceCounterCategory("Network Interface");
 			checkinstances = cat.GetInstanceNames().ToList();
 			foreach (string instance in checkinstances)
 			{
@@ -89,7 +89,7 @@ namespace ResourceLogger
 			List<string> lStr = new List<string>();
 			foreach (var instance in instances)
 			{
-				lStr.Add(instance.instanceName);
+				lStr.Add(instance.DisplayName);
 			}
 			return lStr.ToArray();
 		}
@@ -103,7 +103,7 @@ namespace ResourceLogger
 			}
 			foreach (var i in instances)
 			{
-				if (i.instanceName == name)
+				if (i.DisplayName == name)
 				{
 					i.isSelected = true;
 					i.SetSeriesVisible(true);

@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,8 +17,10 @@ namespace ResourceLogger
     public abstract class AnInstance
     {
         
-        public string instanceName;
-        public bool isSelected;
+        public string instanceName { get; set; }
+        public string DisplayName { get; set; } = "unidentified";
+        public string DataName { get; set; } = "unidentified";
+        public bool isSelected { get; set; }
         public string dbPath { get; set; } = Properties.Settings.Default.SystemDirectory + "LocalResourceRecords.db";
 
         protected List<Series> liveSeries;
@@ -145,7 +148,7 @@ namespace ResourceLogger
                     DateTime begin = start - TimeSpan.FromTicks(width.Ticks*2);
                     DateTime end = start + TimeSpan.FromTicks(width.Ticks * 3);
                     var query = db.Table<TDataPointType>()
-                        .Where(d => d.time >= begin && d.time <= end && (d.instanceName == null || d.instanceName == instanceName))
+                        .Where(d => d.time >= begin && d.time <= end && (d.instanceName == null || d.instanceName == DataName))
                         .ToList<TDataPointType>();
                     queriedDatapoints.AddRange(query);
                     if (queriedDatapoints.Count>0)
@@ -244,6 +247,8 @@ namespace ResourceLogger
         public MemoryInstance(string name)
 		{
             instanceName = name;
+            DisplayName = "Memory usage";
+            DataName = "mem";
 			memCounter = new PerformanceCounter("Memory", "Available MBytes");
 			totalMemory = (int)GetTotalMemoryInMBytes();
 
@@ -323,14 +328,41 @@ namespace ResourceLogger
 
         public DiskInstance(string name)
         {
-            instanceName = name + "disk usage";
+            instanceName = name;
 			readCounter = new PerformanceCounter("PhysicalDisk", "Disk Read Bytes/sec", name);
 			writeCounter = new PerformanceCounter("PhysicalDisk", "Disk Write Bytes/sec", name);
 
-			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
+            setDisplayName();
+
+            liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.GreenYellow, BorderDashStyle = ChartDashStyle.Dash });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Green });
+        }
+
+        private void setDisplayName()
+        {
+            if (instanceName == "_Total")
+            {
+                DataName = "totdisk";
+                DisplayName = "Total disk usage";
+                return;
+            }
+
+            string diskNumber = instanceName.Split(' ')[0];
+
+            WqlObjectQuery q = new WqlObjectQuery("SELECT * FROM Win32_DiskDrive");
+            ManagementObjectSearcher res = new ManagementObjectSearcher(q);
+            foreach (ManagementObject o in res.Get())
+            {
+                string n = (string)o["Name"];
+                if (n.Contains(diskNumber))
+                {
+                    DataName = (string)o["SerialNumber"];
+                    DisplayName = "Disk usage: "+ instanceName + " "+ o["Caption"];
+                    return;
+                }
+            }
         }
 
         private void writeToSeries()
@@ -346,7 +378,7 @@ namespace ResourceLogger
             double currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
             double currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
 
-            currentDatapoint = new DiskDatapoint(DateTime.Now, span, currentDataRead, currentDataWrite, instanceName);
+            currentDatapoint = new DiskDatapoint(DateTime.Now, span, currentDataRead, currentDataWrite, DataName);
 
 			writeToSeries();
             saveInfoToDB(db);
@@ -396,8 +428,10 @@ namespace ResourceLogger
 
         public NetworkInstance(string name)
 		{
-            instanceName = name + "network usage";
-			readCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", name);
+            instanceName = name;
+            DisplayName = "Network adapter usage: " + name;
+            DataName = name;
+            readCounter = new PerformanceCounter("Network Interface", "Bytes Received/sec", name);
 			writeCounter = new PerformanceCounter("Network Interface", "Bytes Sent/sec", name);
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.Salmon, BorderDashStyle = ChartDashStyle.Dash });
@@ -419,7 +453,7 @@ namespace ResourceLogger
             double currentDataWrite = currentWriteSpeed * span.TotalSeconds / 1024.0 / 1024.0;
             double currentDataRead = currentReadSpeed * span.TotalSeconds / 1024.0 / 1024.0;
 
-            currentDatapoint = new NetworkDatapoint(DateTime.Now,span,currentDataRead,currentDataWrite,instanceName);
+            currentDatapoint = new NetworkDatapoint(DateTime.Now,span,currentDataRead,currentDataWrite, DataName);
 
 			writeToSeries();
             saveInfoToDB(db);
@@ -469,7 +503,9 @@ namespace ResourceLogger
         public CpuInstance(string name)
 		{
             instanceName = name;
-			totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
+            DisplayName = "CPU usage";
+            DataName = "cpu"; // not needed really
+            totalCpuTimeCount = new PerformanceCounter("Processor Information", "% Processor Utility", "_Total");
 
 			liveSeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
 			historySeries.Add(new Series { ChartType = SeriesChartType.Line, Color = Color.DodgerBlue });
