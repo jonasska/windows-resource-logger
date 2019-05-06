@@ -10,8 +10,8 @@ using SQLite;
 
 namespace ResourceLogger
 {
-	public abstract class Datapoint
-	{
+	public abstract class Datapoint : ICloneable
+    {
         [PrimaryKey, AutoIncrement]
         public int Id { get; set; }
         public DateTime time { get; set; }
@@ -20,6 +20,12 @@ namespace ResourceLogger
         public string instanceName { get; set; }
 
         public abstract void addDatapoint(Datapoint point);
+
+        public object Clone()
+        {
+            Datapoint d = (Datapoint)this.MemberwiseClone();
+            return d;
+        }
     }
 
 	public class MemoryDatapoint : Datapoint

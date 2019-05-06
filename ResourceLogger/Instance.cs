@@ -150,7 +150,7 @@ namespace ResourceLogger
             {
                 if (p.time >= start && p.time <= start+width)
                 {
-                    relevantDataPoints.Add(p);
+                    relevantDataPoints.Add((TDataPointType)p.Clone());
                 }
             }
             List<TDataPointType> points = new List<TDataPointType>();
